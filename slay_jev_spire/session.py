@@ -105,6 +105,7 @@ class DecisionMemory:
         self.visits = Counter()
         self.repeated_requests = 0
         self.opened_reward = None
+        self.inspected_shops = set()
 
     @staticmethod
     def location(game):
@@ -113,6 +114,9 @@ class DecisionMemory:
     def observe(self, before, after, decision):
         action = decision['action']
         game = before.get('game_state', {})
+        for observed in (game, after.get('game_state', {})):
+            if observed.get('screen_type') == 'SHOP_SCREEN':
+                self.inspected_shops.add(self.location(observed))
         kind = action.get('kind')
         if kind == 'reward' and action.get('reward', {}).get('reward_type') == 'CARD':
             # Multiple anonymous CARD entries cannot safely be distinguished after removal.
@@ -564,6 +568,8 @@ class RunSession(SessionRuntime):
                                      or (a['reward']['reward_type'] == 'POTION'
                                          and not any(r.get('id') == 'Sozu' for r in summary.get('relics', []))))), None)
             action = bind_plan_step(self.turn_queue[0], summary, candidates) if self.turn_queue and 'player' in summary else None
+            inspect_shop = next((a for a in candidates if a.get('kind') == 'screen_shop_room'
+                                 and self.memory.location(game) not in self.memory.inspected_shops), None)
             source = 'reused_turn_plan'
             if self.turn_queue and not action and not selection_action:
                 self._record('plan_invalidated', before=raw, reason='observed_state_differs_from_turn_forecast', expected=self.turn_queue[0]['expected_before'], observed=battle_projection(summary) if 'player' in summary else summary)
@@ -573,6 +579,11 @@ class RunSession(SessionRuntime):
                 source = 'planned_card_selection'
                 action = None
                 if selection_action['command'] == 'CONFIRM': self.planned_selection = None
+            elif inspect_shop:
+                decision = {'action': inspect_shop, 'requested_model': None, 'returned_model': None, 'confidence': None}
+                self.turn_queue = []
+                action = None
+                source = 'local_inspect_shop'
             elif free_reward:
                 decision = {'action': free_reward, 'requested_model': None, 'returned_model': None, 'confidence': None}
                 self.turn_queue = []

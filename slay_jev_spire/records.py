@@ -125,6 +125,7 @@ def review_run(rows, run_id, metadata=None):
     coverage = {name: {'observed': False, 'decisions': 0, 'confirmed_actions': 0,
                        'locations': set(), 'action_kinds': Counter()} for name in names}
     last_game = {}; max_floor = 0; max_act = 0; models = set(); hotspots = []; inspected_rewards = set(); card_usage = {}
+    inspected_shops = set()
     for row in events:
         for raw in (row.get('before'), row.get('after')):
             game = _game(raw)
@@ -134,6 +135,7 @@ def review_run(rows, run_id, metadata=None):
             max_act = max(max_act, game.get('act') or 0)
             name = game.get('screen_type')
             if name == 'CARD_REWARD': inspected_rewards.add((game.get('act'),game.get('floor')))
+            if name == 'SHOP_SCREEN': inspected_shops.add((game.get('act'),game.get('floor')))
             if name in coverage:
                 coverage[name]['observed'] = True
                 coverage[name]['locations'].add((game.get('act'), game.get('floor')))
@@ -158,6 +160,11 @@ def review_run(rows, run_id, metadata=None):
         if name in coverage and status == 'action_confirmed':
             coverage[name]['confirmed_actions'] += 1
             coverage[name]['action_kinds'][decision.get('action',{}).get('kind','unknown')] += 1
+            if (name == 'SHOP_ROOM' and decision.get('action',{}).get('kind') in {'screen_proceed','screen_leave'}
+                    and (before.get('act'),before.get('floor')) not in inspected_shops):
+                hotspots.append(dict(category='uninspected_shop',component_hint=['session.py'],
+                    step_id=row.get('step_id'),floor=before.get('floor'),gold=before.get('gold'),
+                    evidence_status='confirmed_shop_left_before_stock_inspection'))
             if (name == 'COMBAT_REWARD' and decision.get('action',{}).get('kind') == 'proceed'
                     and (before.get('act'),before.get('floor')) not in inspected_rewards
                     and any(r.get('reward_type') == 'CARD' for r in before.get('screen_state',{}).get('rewards',[]))):

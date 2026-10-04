@@ -32,6 +32,17 @@ def test_review_records_death_as_terminal_without_calling_hp_loss_a_policy_error
     assert packet['hotspots'][0]['evidence_status']=='review_candidate_not_proven_mistake'
 
 
+def test_review_flags_leaving_a_shop_only_if_stock_was_never_observed():
+    from slay_jev_spire.records import review_run
+    before={'game_state':{'act':1,'floor':13,'screen_type':'SHOP_ROOM','gold':245}}
+    row={'run_id':'one','status':'action_confirmed','step_id':41,'before':before,
+         'decision':{'action':{'kind':'screen_proceed'}}}
+    assert review_run([row],'one')['hotspots'][0]['category']=='uninspected_shop'
+    observed={'run_id':'one','status':'action_confirmed','step_id':40,
+              'after':{'game_state':{'act':1,'floor':13,'screen_type':'SHOP_SCREEN'}}}
+    assert not review_run([observed,row],'one')['hotspots']
+
+
 def test_run_reader_uses_exact_identity_and_latest_run(tmp_path):
     from slay_jev_spire.records import read_run_records
     import json

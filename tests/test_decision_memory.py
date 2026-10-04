@@ -98,6 +98,34 @@ def test_same_state_loop_stops_before_another_model_call(tmp_path):
     assert memory.repeated_requests == 2
 
 
+def test_shop_is_inspected_before_model_may_leave_and_not_reopened(tmp_path):
+    entrance=reward()
+    entrance['available_commands']=['choose','proceed','state']
+    entrance['game_state'].update(screen_type='SHOP_ROOM',screen_state={},choice_list=['shop'],gold=245)
+    shop=copy.deepcopy(entrance)
+    shop['available_commands']=['choose','leave','state']
+    shop['game_state'].update(screen_type='SHOP_SCREEN',choice_list=['purge'],
+                             screen_state={'purge_available':True,'purge_cost':75,'cards':[],'relics':[],'potions':[]})
+    calls=[]
+    def leave(summary,actions):
+        calls.append(summary['screen_type'])
+        return choose_mock(summary,sorted(actions,key=lambda a:a['command'] not in {'LEAVE','PROCEED'}))
+    session=RunSession(tmp_path,mode='mock',selector=leave,catalog={})
+    assert session.receive(entrance)==['STATE']
+    assert not calls
+    assert session.receive(entrance)==['CHOOSE 0']
+    session.command_sent('CHOOSE 0')
+    assert session.receive(shop)==['STATE']
+    assert calls==['SHOP_SCREEN']
+    assert session.receive(shop)==['LEAVE']
+    session.command_sent('LEAVE')
+    assert session.receive(entrance)==['STATE']
+    assert session.receive(entrance)==['PROCEED']
+    restarted=RunSession(tmp_path,mode='mock',selector=leave,catalog={})
+    restarted.receive(entrance)
+    assert restarted.pending[1]['action']['command']=='PROCEED'
+
+
 def test_combat_context_preserves_native_damage_and_warns_about_unused_energy(tmp_path):
     raw = json.loads(Path('samples/communication_mod_combat.json').read_text(encoding='utf-8'))
     raw['game_state']['combat_state']['monsters'][0]['intent'] = 'ATTACK'
