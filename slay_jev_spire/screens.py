@@ -121,6 +121,25 @@ def _selection_evidence(before,after,cards,state):
     return 'Observed selected card UUIDs or corresponding deck/card-group changes.' if cards else None
 
 
+def _copied_selection(before, after, cards):
+    # Dual Wield replaces even the original with fresh UUIDs. Require matching
+    # new copies in the same turn; an unrelated draw or screen change is insufficient.
+    if len(cards) != 1 or not cards[0].get('id') or not cards[0].get('uuid'): return None
+    if before.get('screen_type') != 'HAND_SELECT' or after.get('screen_type') != 'NONE': return None
+    if before.get('room_phase') != 'COMBAT' or after.get('room_phase') != 'COMBAT': return None
+    if any(before.get(k) != after.get(k) for k in ('seed','act','floor')): return None
+    old, new = before.get('combat_state',{}), after.get('combat_state',{})
+    if old.get('turn') is None or old['turn'] != new.get('turn'): return None
+    groups = ('hand','draw_pile','discard_pile','exhaust_pile','limbo')
+    old_ids = {c.get('uuid') for group in groups for c in old.get(group,[])} | {cards[0]['uuid']}
+    if any(c.get('uuid') == cards[0]['uuid'] for group in groups for c in new.get(group,[])): return None
+    copies = {c['uuid'] for group in ('hand','discard_pile') for c in new.get(group,[])
+              if c.get('uuid') and c['uuid'] not in old_ids and c.get('id') == cards[0]['id']
+              and c.get('upgrades',0) == cards[0].get('upgrades',0)}
+    if len(copies) >= 2: return 'Observed selected card replaced by new matching copy UUIDs in the same combat turn.'
+    return None
+
+
 def confirm_screen(before: dict, after: dict, action: Action) -> str | None:
     """Match observations to this action; unrelated raw changes remain unconfirmed."""
     try:
@@ -137,6 +156,8 @@ def confirm_screen(before: dict, after: dict, action: Action) -> str | None:
                 cards=[c for c in action['selection_state'].get('cards',[]) if c.get('uuid') == action['selection_state']['pending_card_uuid']]
             evidence=_selection_evidence(b,a,cards,action['selection_state'])
             if evidence and (changed_screen or ast!=bs): return evidence
+            copied=_copied_selection(b,a,cards)
+            if copied: return copied
             if not cards and bs.get('confirm_up') and changed_screen: return 'Observed native confirmation screen closed.'
             if not cards and b['screen_type']=='HAND_SELECT' and bs.get('can_pick_zero') and changed_screen: return 'Observed zero-card selection confirmation closed.'
             return None

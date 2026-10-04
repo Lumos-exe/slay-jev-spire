@@ -155,3 +155,26 @@ def test_grid_target_uuid_can_move_immediately_to_draw_pile():
     assert confirm_screen(before,after,action)
     after['game_state']['combat_state']['draw_pile']=[other]
     assert confirm_screen(before,after,action) is None
+
+
+def test_dual_wield_confirm_accepts_replaced_original_and_new_copy_uuids():
+    chosen=card(id='Strike_R',upgrades=1)
+    before=raw('HAND_SELECT',[],{'hand':[],'selected':[chosen],'max_cards':1},('confirm',),
+               seed=20001,act=1,floor=11,room_phase='COMBAT',combat_state={'turn':3,'hand':[]})
+    action=prepare_screen(before)[0]
+    first,second=card(uuid='copy-1',id='Strike_R',upgrades=1),card(uuid='copy-2',id='Strike_R',upgrades=1)
+    after=raw('NONE',[],{},seed=20001,act=1,floor=11,room_phase='COMBAT',
+              combat_state={'turn':3,'hand':[first],'discard_pile':[second]})
+    assert confirm_screen(before,after,action)
+    for mutation in ('one_copy','wrong_card','wrong_upgrade','existing_card','still_open','next_turn','next_floor'):
+        invalid=deepcopy(after)
+        g=invalid['game_state'];c=g['combat_state']
+        if mutation=='one_copy': c['discard_pile']=[]
+        elif mutation=='wrong_card': c['discard_pile'][0]['id']='Bash'
+        elif mutation=='wrong_upgrade': c['discard_pile'][0]['upgrades']=0
+        elif mutation=='existing_card': c['discard_pile'][0]['uuid']='existing'
+        elif mutation=='still_open': g['screen_type']='HAND_SELECT'
+        elif mutation=='next_turn': c['turn']=4
+        elif mutation=='next_floor': g['floor']=12
+        before['game_state']['combat_state']['draw_pile']=[card(uuid='existing',id='Strike_R',upgrades=1)]
+        assert confirm_screen(before,invalid,action) is None, mutation
