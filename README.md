@@ -24,7 +24,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_jev_state.ps1 -I
 ```
 
 密钥使用当前 Windows 用户的 DPAPI 加密保存，或设置 `TYPESAFE_API_KEY` 环境变量。
-通过 `play` 启动的自动游戏会确认游戏内的说明教程；普通手动启动不启用此行为，事件选择不受影响。
 `JEV_MODEL` 可固定模型；每次请求记录服务端实际返回的版本。
 
 离线回放与测试：

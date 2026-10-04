@@ -124,14 +124,12 @@ def review_run(rows, run_id, metadata=None):
              'SHOP_SCREEN','REST','BOSS_REWARD','GRID','HAND_SELECT','GAME_OVER')
     coverage = {name: {'observed': False, 'decisions': 0, 'confirmed_actions': 0,
                        'locations': set(), 'action_kinds': Counter()} for name in names}
-    last_game = {}; max_floor = 0; max_act = 0; models = set(); hotspots = []; inspected_rewards = set(); card_usage = {}; tutorial_acks = []
+    last_game = {}; max_floor = 0; max_act = 0; models = set(); hotspots = []; inspected_rewards = set(); card_usage = {}
     for row in events:
         for raw in (row.get('before'), row.get('after')):
             game = _game(raw)
             if not game: continue
             last_game = game
-            if game.get('automation',{}).get('tutorial_acknowledgements'):
-                tutorial_acks = game['automation']['tutorial_acknowledgements']
             max_floor = max(max_floor, game.get('floor') or 0)
             max_act = max(max_act, game.get('act') or 0)
             name = game.get('screen_type')
@@ -213,7 +211,7 @@ def review_run(rows, run_id, metadata=None):
         outcome=dict(completed=completed,victory=game_over.get('screen_state',{}).get('victory') if completed else None,
                      reason=terminal.get('reason') if terminal else None,max_act=max_act,max_floor=max_floor,
                      final_hp=last_game.get('current_hp'),score=game_over.get('screen_state',{}).get('score') if completed else None),
-        metrics=run_metrics(events),coverage=coverage,hotspots=hotspots,card_usage=card_usage,tutorial_acknowledgements=tutorial_acks,
+        metrics=run_metrics(events),coverage=coverage,hotspots=hotspots,card_usage=card_usage,
         uncertain_choices=choices[:12],request_count=len(requests),
         review_contract={'facts':'Use the linked raw steps and candidates; HP deltas do not prove causality.',
             'changes':'Propose the smallest component change with a regression fixture and a measurable acceptance criterion.',

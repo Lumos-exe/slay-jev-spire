@@ -84,7 +84,7 @@ foreach ($requiredPath in $requiredPaths) {
         throw "Missing required file: $requiredPath"
     }
 }
-$javaArguments = @('-Djev.autoTutorials=true', '-jar', ('"' + $loaderPath + '"'), '--mods', 'basemod,CommunicationMod,jevstate', '--skip-intro')
+$javaArguments = @('-jar', ('"' + $loaderPath + '"'), '--mods', 'basemod,CommunicationMod,jevstate', '--skip-intro')
 if ($CheckOnly) {
     Write-Output "Ready: $javaPath $($javaArguments -join ' ')"
     Write-Output "Jev decision budget: $MaxDecisions. No files changed or processes launched."
