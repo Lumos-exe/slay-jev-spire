@@ -29,6 +29,29 @@ def session(path,**kw):
     return RunSession(path,mode='mock',**kw)
 
 
+def test_completed_room_overlay_waits_until_native_screen_settles(tmp_path):
+    s=session(tmp_path);transient=reward()
+    transient['game_state'].update(screen_type='NONE',room_phase='COMPLETE',is_screen_up=True)
+    transient['available_commands']=['potion','key','click','state']
+    assert s.receive(transient)==['STATE'] and not s.stopped and s.calls==0
+    stable=copy.deepcopy(transient)
+    stable['game_state'].update(screen_type='CHEST',is_screen_up=False,screen_state={'chest_open':True},choice_list=[])
+    stable['available_commands']=['proceed','state']
+    assert s.receive(stable)==['STATE']
+    assert s.receive(stable)==['PROCEED']
+
+
+def test_temporary_card_pickup_is_not_confused_with_permanent_reward():
+    from slay_jev_spire.session import confirmation
+    before={'game_state':{'screen_type':'CARD_REWARD','room_phase':'COMBAT','combat_state':{'hand':[], 'limbo':[{'id':'Discovery','uuid':'played'}]}}}
+    action={'kind':'card','command':'CHOOSE 0','card':{'id':'Discovery'}}
+    after=copy.deepcopy(before)
+    after['game_state'].update(screen_type='NONE',combat_state={'hand':[],'discard_pile':[{'id':'Discovery','uuid':'played'}]})
+    assert confirmation(before,after,action) is None
+    after['game_state']['combat_state']['hand']=[{'id':'Discovery','uuid':'generated'}]
+    assert confirmation(before,after,action)=='temporary_card_added'
+
+
 def send(s,r):
     assert s.receive(r)==['STATE']
     command=s.receive(r)[0]; s.command_sent(command); return command

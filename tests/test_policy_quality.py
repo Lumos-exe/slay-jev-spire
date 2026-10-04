@@ -373,3 +373,11 @@ def test_draw_plan_includes_conditional_continuation_of_existing_hand():
     assert continuation['outcome']['enemy_hp']==34
     assert continuation['outcome']['forecast_scope']=='conditional_known_hand'
     assert prefix['outcome']['forecast_scope']=='partial' and not prefix['outcome']['combat_won']
+
+
+def test_other_observed_neow_cards_have_explicit_effects():
+    raw=battle([card('Good Instincts',0,'SKILL',block=6,target=False),card('Discovery',1,'SKILL',target=False)])
+    state=transition(raw,[('Good Instincts',None,None),('Discovery',None,None)])
+    assert state['block']==6 and state['energy']==2
+    assert state['checkpoint']=='card_choice' and state['generated']==1
+    assert not state['uncertainties']

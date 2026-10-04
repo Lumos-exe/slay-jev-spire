@@ -49,6 +49,8 @@ CARD_SPECS = {
     'Offering': ('SKILL', 0, 0, 0, 3), 'Reaper': ('ATTACK', 2, 4, 0, 0),
     # Colorless card acquired in normal Ironclad runs (e.g. Neow).
     'Deep Breath': ('SKILL', 0, 0, 0, 1),
+    'Good Instincts': ('SKILL', 0, 0, 6, 0),
+    'Discovery': ('SKILL', 1, 0, 0, 0),
 }
 EXHAUST = {'Disarm', 'Infernal Blade', 'Intimidate', 'Pummel', 'Seeing Red', 'Shockwave',
            'Exhume', 'Feed', 'Fiend Fire', 'Impervious', 'Offering', 'Reaper', 'Warcry'}
@@ -507,6 +509,9 @@ def play(before, step):
         state['energy'] += 1; draw(state, 1)
     if ident == 'Infernal Blade':
         state['generated'] += 1; checkpoint(state, 'unknown_card')
+    if ident == 'Discovery':
+        state['generated'] += 1; checkpoint(state, 'card_choice')
+        state['notes'].append({'effect':'choose_one_of_three_random_cards','cost_this_turn':0})
     if ident == 'Havoc' and (state['draw_pile'] or state['discard_pile']):
         checkpoint(state, 'autoplay_top_card')
     if ident in SELECT:

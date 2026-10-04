@@ -14,7 +14,7 @@ import json
 import os
 from .screens import prepare_journey
 from .records import append_record
-from .selectors import INSTRUCTIONS, SelectionError, validate_choice
+from .selectors import INSTRUCTIONS, SelectionError, validate_choice, instructions_for
 from .state import UnsupportedState
 from .state import load_catalog, enrich_summary
 from .screens import confirm_screen
@@ -122,8 +122,10 @@ class DecisionMemory:
             if kind == 'skip' and self.opened_reward == (self.location(game), True):
                 self.declined.add(self.location(game))
             self.opened_reward = None
+        played = next((c for c in game.get('combat_state',{}).get('hand',[]) if c.get('uuid') == action.get('card_uuid')), {})
         self.recent.append({'floor': game.get('floor'), 'screen_type': game.get('screen_type'),
-                            'command': action['command'], 'kind': kind})
+                            'command': action['command'], 'kind': kind,
+                            'card_id': played.get('id'), 'potion_id': action.get('potion_id')})
         self.recent = self.recent[-8:]
 
     def filter(self, raw, actions):
@@ -211,7 +213,7 @@ def confirmation(before: dict, after: dict, action: dict) -> str | None:
     if action['command'].startswith('PLAY'):
         if old.get('room_phase') == 'COMBAT' and screen in {'COMBAT_REWARD', 'GAME_OVER', 'COMPLETE'}:
             return 'combat_ended'
-        if old_screen == 'NONE' and screen in {'HAND_SELECT', 'GRID'}:
+        if old_screen == 'NONE' and screen in {'HAND_SELECT', 'GRID', 'CARD_REWARD'}:
             return 'play_opened_selection'
         hand = new.get('combat_state', {}).get('hand')
         if after.get('ready_for_command') is True and isinstance(hand, list) and all((isinstance(c, dict) and ('uuid' in c or 'card_uuid' in c) for c in hand)) and (new.get('room_phase') == 'COMBAT') and (action['card_uuid'] not in {c.get('uuid', c.get('card_uuid')) for c in hand}):
@@ -246,6 +248,12 @@ def confirmation(before: dict, after: dict, action: dict) -> str | None:
                 return 'potion_reward_collected'
             if reward_type == 'RELIC' and new.get('relics') != old.get('relics') and any((r.get('id') == reward['relic'].get('id') for r in new.get('relics', []))):
                 return 'relic_reward_collected'
+    if kind == 'card' and old.get('room_phase') == 'COMBAT' and new.get('room_phase') == 'COMBAT':
+        old_combat, new_combat = old.get('combat_state',{}), new.get('combat_state',{})
+        old_ids = {c.get('uuid') for group in ('hand','draw_pile','discard_pile','exhaust_pile','limbo') for c in old_combat.get(group,[])}
+        if any(c.get('id') == action['card']['id'] and c.get('uuid') and c['uuid'] not in old_ids
+               for group in ('hand','discard_pile') for c in new_combat.get(group,[])):
+            return 'temporary_card_added'
     if kind in {'card', 'bowl', 'skip'} and screen in {'COMBAT_REWARD', 'COMPLETE', 'EVENT'}:
         if kind == 'skip' and new.get('deck') == old.get('deck'):
             return 'card_reward_skipped'
@@ -358,7 +366,7 @@ class RunSession(SessionRuntime):
         self.calls += 1
         self.decision_id = f'{self.run_id}:{self.calls}'
         self._record('request_started', before=raw, summary=summary, candidates=candidates,
-                     loop_candidates=self._loop_candidates, instructions=INSTRUCTIONS)
+                     loop_candidates=self._loop_candidates, instructions=instructions_for(summary))
         decision = self.selector(summary, candidates)
         action = validate_choice(decision['action']['id'], candidates)
         if decision['action'] != action:
@@ -486,6 +494,15 @@ class RunSession(SessionRuntime):
             self.reason = 'game_over'
             self._record('complete', after=raw, result=self.result)
             return []
+        if game.get('screen_type') == 'NONE' and game.get('room_phase') == 'COMPLETE':
+            # CommunicationMod can be ready for generic key/potion commands
+            # while a reward overlay is closing; its next native choice screen
+            # (CHEST/COMPLETE/MAP) has not settled yet.
+            if self.deadline is None:
+                self.deadline = time.monotonic() + 15
+                self._record('awaiting_transition', before=raw, reason='completed_room_screen_closing')
+            time.sleep(0.1)
+            return ['STATE']
         if raw.get('ready_for_command') is not True or (game.get('room_phase') == 'COMBAT' and game.get('screen_type') == 'NONE' and game.get('action_phase') != 'WAITING_ON_USER') or (not [c for c in raw.get('available_commands', []) if c not in {'state', 'wait'}]):
             if self.deadline is None:
                 self.deadline = time.monotonic() + 15
@@ -601,7 +618,7 @@ class RunSession(SessionRuntime):
                 self.checkpoint_pending = step.get('checkpoint')
                 decision = {'action': action, **self.plan_metadata}
             self._record('decision', before=raw, summary=summary, candidates=candidates,
-                         decision=decision, instructions=INSTRUCTIONS, source=source)
+                         decision=decision, instructions=instructions_for(summary), source=source)
         except (SelectionError, KeyError, TypeError) as error:
             return self._stop('selection_error', message=str(error) if isinstance(error, SelectionError) else 'Invalid selector response.')
         self.pending = (deepcopy(raw), deepcopy(decision))

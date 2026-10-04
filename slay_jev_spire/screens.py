@@ -190,6 +190,8 @@ def prepare_journey(raw: dict) -> tuple[dict, list[dict]]:
         screen = game['screen_type']
         context = deepcopy({k: game.get(k) for k in ('seed', 'class', 'act', 'floor', 'current_hp', 'max_hp', 'gold', 'deck', 'relics', 'potions', 'map', 'act_boss', 'ascension_level')})
         context.update(screen_type=screen, screen_state=deepcopy(game.get('screen_state', {})))
+        if game.get('room_phase') == 'COMBAT' and screen != 'NONE':
+            context['combat_context'] = deepcopy(game.get('combat_state', {}))
         if game.get('room_phase') == 'COMBAT' and screen == 'NONE':
             summary, actions = prepare_native_combat(raw)
             summary.update(context)

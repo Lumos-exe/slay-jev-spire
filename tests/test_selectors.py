@@ -123,3 +123,15 @@ def test_card_templates_are_lossless_and_share_identity_with_plans():
         if '$card' in v:v={**wire['card_templates'][v['$card']],**{k:x for k,x in v.items() if k!='$card'}}
         return {k:refs.get(x,x) if k in {'uuid','card_uuid'} and isinstance(x,str) else expand(x) for k,x in v.items()}
     assert expand({k:v for k,v in wire.items() if k!='card_templates'})==original
+
+
+def test_choice_objective_depends_on_screen_and_temporary_card_origin():
+    from slay_jev_spire.selectors import instructions_for,INSTRUCTIONS,model_payload
+    combat=instructions_for({'screen_type':'NONE'})
+    reward=instructions_for({'screen_type':'CARD_REWARD'})
+    temporary=instructions_for({'screen_type':'CARD_REWARD','combat_context':{}})
+    assert combat==INSTRUCTIONS
+    assert reward!=combat and temporary!=reward
+    assert '拿牌不消耗金币或能量' in reward and '临时牌' in temporary
+    state,_,_=model_payload({'screen_type':'CARD_REWARD','deck':[{'id':'Strike_R','type':'ATTACK'}]*5+[{'id':'Defend_R','type':'SKILL'}]*4+[{'id':'Bash','type':'ATTACK'}]},[])
+    assert state['deck_profile']['size']==10 and state['deck_profile']['starting_cards']==10
