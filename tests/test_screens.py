@@ -157,10 +157,16 @@ def test_grid_target_uuid_can_move_immediately_to_draw_pile():
     assert confirm_screen(before,after,action) is None
 
 
-def test_dual_wield_confirm_accepts_replaced_original_and_new_copy_uuids():
+@pytest.mark.parametrize('immediate',[False,True])
+def test_dual_wield_confirm_accepts_replaced_original_and_new_copy_uuids(immediate):
     chosen=card(id='Strike_R',upgrades=1)
     before=raw('HAND_SELECT',[],{'hand':[],'selected':[chosen],'max_cards':1},('confirm',),
                seed=20001,act=1,floor=11,room_phase='COMBAT',combat_state={'turn':3,'hand':[]})
+    if immediate:
+        before['available_commands']=['choose']
+        before['game_state']['choice_list']=['strike']
+        before['game_state']['screen_state'].update(hand=[chosen],selected=[])
+        before['game_state']['combat_state']['hand']=[chosen]
     action=prepare_screen(before)[0]
     first,second=card(uuid='copy-1',id='Strike_R',upgrades=1),card(uuid='copy-2',id='Strike_R',upgrades=1)
     after=raw('NONE',[],{},seed=20001,act=1,floor=11,room_phase='COMBAT',

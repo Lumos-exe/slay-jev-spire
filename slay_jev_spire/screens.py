@@ -149,7 +149,8 @@ def confirm_screen(before: dict, after: dict, action: Action) -> str | None:
             if (kind == 'screen_grid' and bs.get('confirm_up') is not True and ast.get('confirm_up') is True
                     and ast.get('pending_card_uuid') == action['card_uuid']):
                 return 'Observed requested card UUID in native confirmation preview; effect awaits CONFIRM.'
-            return _selection_evidence(b,a,[action['card']],action['selection_state'])
+            return (_selection_evidence(b,a,[action['card']],action['selection_state'])
+                    or _copied_selection(b,a,[action['card']]))
         if kind=='screen_confirm' and b['screen_type'] in {'GRID','HAND_SELECT'}:
             cards=_selected(action['selection_state'])
             if not cards and action['selection_state'].get('pending_card_uuid'):
