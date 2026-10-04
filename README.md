@@ -1,7 +1,12 @@
 # Slay Jev Spire
 
+双击 `play_jev.cmd` 配置并启动 Mod 游戏，主菜单点击“继续”后让 Jev 操作。双击 `status_jev.cmd` 查看最近状态，`pause_combat.cmd` 暂停。无需在聊天里逐步确认；详细步骤和当前限制见 [独立测试指南](docs/independent-testing.md)。
+
 让 Jev 对《杀戮尖塔》一代的 CommunicationMod 状态快照做一次离线动作选择。
-程序只显示命令并记录，不连接、启动或操作游戏。
+离线 CLI 只显示命令并记录。新增的专用入口 `capture_game.py` 可连接 CommunicationMod，
+采集真实游戏状态；可选 `--execute-once mock` 或 `--execute-once jev` 执行一个候选。
+配置和验证方法见 [实时采集指南](docs/live-capture.md)。
+自动完成一场战斗使用 `--combat jev`，有调用上限和暂停入口，见 [战斗循环指南](docs/combat-loop.md)。
 
 目录职责、共享数据结构、调用流程和每个函数的说明见 [架构说明](docs/architecture.md)。
 新增代码前可直接查阅其中的 [未来功能放置位置](docs/architecture.md#6-后续功能应该放在哪里)
@@ -18,8 +23,12 @@
 | 牌/目标索引、返回值校验 | 自动化测试已通过 |
 | 模拟模式不联网 | 已通过：独立进程禁止 socket 操作及 SDK 导入，移除两个密钥仍完整运行 |
 | Jev SDK 请求构造、响应解析 | 本地伪造 HTTP 响应验证通过，不代表真实 API 已验证 |
-| Jev 真实请求 | **尚未验证**：当前执行进程没有 `TYPESAFE_API_KEY`，未向 Jev 发出真实请求 |
-| 游戏命令执行、Windows → `wsl.exe` → Python 标准输入输出 | 尚未验证 |
+| Jev 真实请求 | 2026-10-04 实测成功，返回 `jev-1.13.0`、候选 `PLAY 5 0`、置信度 0.55。运行时使用环境变量或 Windows 本机加密配置，无 1Password 依赖 |
+| Windows 原生离线 CLI、依赖与测试 | 2026-10-03 用 Windows Python 3.12.14 验证：模拟运行成功，35 项测试通过，`pip check` 通过 |
+| 游戏命令执行、CommunicationMod 标准输入输出 | 2026-10-04 单次模拟出牌实测通过：`PLAY 1 0`，能量 3→2，牌进入弃牌堆，目标生命 12→6、蜷身触发获得 5 格挡 |
+| CommunicationMod 状态采集入口 | 2026-10-04 真实主菜单及中文战斗状态采集通过，GBK 输入保存为 UTF-8；45 项测试通过 |
+| 实时 Jev 单步入口 | 真实执行已验证：痛击使能量 3→1，目标生命 12→4，获得 2 层易伤，牌进入弃牌堆。51 项测试通过；配置已恢复只采集 |
+| Jev 一场战斗循环 | 2026-10-04 实测完成第 1 层虱虫战斗：20 次请求/动作、7 回合，战后 79/80 生命，停止于奖励界面；62 项测试通过 |
 | DeepSeek、整局运行、复盘与策略评估 | 尚未实现 |
 
 真实选择成功也只证明离线接口链路可用，不证明命令已在游戏执行或策略有效。
@@ -30,7 +39,7 @@
 
 后续开发使用 Windows 本机的 VS Code、Python 和 PowerShell。
 按 [Windows 迁移指南](docs/windows.md) 克隆仓库、重新创建虚拟环境并设置密钥。
-Windows 本机安装和运行尚未实测；下面的 WSL 说明保留作为已有环境的使用方法。
+Windows 原生离线运行已实测；下面的 WSL 说明保留作为已有环境的使用方法。
 
 ### 已有 WSL 环境
 
@@ -106,8 +115,8 @@ DeepSeek 尚未接入，不需要设置 `DEEPSEEK_API_KEY`。
 当前只接受以下明确覆盖的状态，超出范围就拒绝：
 
 - `in_game`、`ready_for_command` 为真；铁甲战士，`COMBAT`、`WAITING_ON_USER` 阶段；`screen_type=NONE`，无打开界面、无 limbo 中的牌。
-- 玩家、敌人没有 powers，玩家没有充能球；遗物仅允许燃烧之血和涅奥的悲恸，也可没有遗物。
-- 手牌仅有未升级的 `Strike_R`、`Defend_R`、`Bash`，目标类型正确，没有被修改的消耗/虚无属性；不支持 X 费或负费用牌。
+- 无充能球；能力支持力量、敏捷、虚弱、易伤、脆弱，以及敌人的蜷身与仪式；保留在摘要中。遗物仅允许燃烧之血和涅奥的悲恸，也可没有遗物。
+- 手牌仅有 `Strike_R`、`Defend_R`、`Bash`（未升级或升级一次），目标类型正确，没有被修改的消耗/虚无属性；不支持 X 费或负费用牌。
 - 根据 `available_commands`、牌的 `is_playable`、当前费用与能量生成候选。不重建完整游戏规则，也不执行伤害或回合模拟。
 
 牌的 `hand_index` 是原始 `hand` 数组的 **0 基位置**，`PLAY` 的牌参数是它加一；目标使用原始 `monsters` 数组的 **0 基位置**。
@@ -151,8 +160,16 @@ python -m pytest -q
 
 各业务函数附有中文说明；完整函数表和后续扩展位置见 [架构说明](docs/architecture.md)。
 
-下一小步接入 DeepSeek 分析；实时游戏接入单独增加传输层。后续在 Windows 原生开发，届时需安装 ModTheSpire、BaseMod、CommunicationMod，并实测用 Windows 虚拟环境的 Python 启动协议进程、`ready` 握手、逐行 JSON 与刷新行为。此前设想的 `wsl.exe` 转接不再是默认路线。
+Windows 原生传输层已增加只采集状态的入口，见 [实时采集指南](docs/live-capture.md)。
+本地管道测试覆盖 `ready` 握手、GBK 中文输入、逐行 JSON、刷新与单次执行，45 项测试通过。
+现场中文战斗采集与一次模拟出牌已验证，配置已恢复只采集。
+实时 Jev 单步与一场战斗循环均已完成现场验证，62 项测试通过。战斗循环支持暂停、
+调用上限和异常停止，测试后配置已恢复只采集。运行方法见 [战斗循环指南](docs/combat-loop.md)。
+后续可扩展奖励/地图流程，再接入 DeepSeek 分析。
+此前设想的 `wsl.exe` 转接不再是默认路线。
 当前 CLI 的 stdout 是人类可读输出，**不能直接作为 CommunicationMod 的协议进程使用**。
 
 未来用固定种子对照局、独立评估局和版本化策略检验改进；调用模型 API 本身不会让模型自动学习。
 Jev 接口参考：[Python SDK](https://docs.typesafe.ai/sdk/python)、[快速入门](https://docs.typesafe.ai/introduction/quickstart)。
+
+跨奖励与地图的有界执行新增 `--run mock|jev`；用法、真实局限制和关联结果记录见 [跨界面执行](docs/run-loop.md)。

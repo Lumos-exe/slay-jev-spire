@@ -17,6 +17,12 @@ CARDS = {
     'Bash': (True, '造成 8 点伤害，施加 2 层易伤'),
 }
 RELICS = {'Burning Blood', 'NeowsBlessing'}
+COMMON_POWERS = {'Strength', 'Dexterity', 'Weakened', 'Vulnerable', 'Frail'}
+UPGRADED_EFFECTS = {
+    'Strike_R': '基础造成 9 点伤害',
+    'Defend_R': '基础获得 8 点格挡',
+    'Bash': '基础造成 10 点伤害，施加 3 层易伤',
+}
 
 
 def _require(condition: bool, message: str) -> None:
@@ -81,22 +87,34 @@ def _validate_context(raw: dict) -> tuple[dict, list[str]]:
 
 
 def _summarize_player(player: dict) -> dict:
-    """校验无 powers/充能球的存活玩家，提取生命、格挡与能量。"""
-    _require(player['powers'] == [] and player['orbs'] == [],
-             '不支持玩家 powers 或充能球。')
+    """校验存活、无充能球的玩家，提取数值与已覆盖的能力。"""
+    _require(player['orbs'] == [], '不支持充能球。')
     summary = {
         key: _integer(player[key]) for key in ('current_hp', 'max_hp', 'block', 'energy')
     }
     _require(player['current_hp'] > 0, '不支持玩家已死亡的状态。')
+    summary['powers'] = _summarize_powers(player['powers'], COMMON_POWERS)
     return summary
 
 
+def _summarize_powers(powers: list[dict], allowed: set[str]) -> list[dict]:
+    """保留已覆盖能力的名称、ID 和层数；力量/敏捷可为负值。"""
+    _require(isinstance(powers, list), 'powers 必须是列表。')
+    result = []
+    for power in powers:
+        power_id = _string(power['id'])
+        _require(power_id in allowed, '当前能力尚未覆盖。')
+        result.append({'id': power_id, 'name': _string(power['name']),
+                       'amount': _integer(power['amount'], None if power_id in {'Strength', 'Dexterity'} else 0)})
+    return result
+
+
 def _summarize_enemies(monsters: list[dict]) -> list[dict]:
-    """校验怪物并保留原始零基位置；负数伤害/攻击次数表示为未知。"""
+    """校验怪物能力，保留原始位置；负数伤害/攻击次数表示未知。"""
     _require(isinstance(monsters, list), '怪物必须是列表。')
     enemies = []
     for index, monster in enumerate(monsters):
-        _require(monster['powers'] == [], '不支持怪物 powers。')
+        powers = _summarize_powers(monster['powers'], COMMON_POWERS | {'Curl Up', 'Ritual'})
         _require(type(monster['is_gone']) is bool and type(monster['half_dead']) is bool,
                  '怪物存活标志必须是布尔值。')
         hp = _integer(monster['current_hp'])
@@ -113,6 +131,7 @@ def _summarize_enemies(monsters: list[dict]) -> list[dict]:
             'intent': _string(monster['intent']),
             'move_adjusted_damage': damage if damage >= 0 else None,
             'move_hits': hits if hits >= 0 else None,
+            'powers': powers,
         })
     _require(any(e['current_hp'] > 0 and not e['is_gone'] and not e['half_dead'] for e in enemies),
              '不支持没有存活目标的战斗状态。')
@@ -120,16 +139,18 @@ def _summarize_enemies(monsters: list[dict]) -> list[dict]:
 
 
 def _summarize_hand(hand: list[dict]) -> list[dict]:
-    """校验支持的基础牌，提取费用、效果、UUID 与原始手牌位置。"""
+    """校验基础牌及一次升级，保留当前费用、基础效果、UUID 与位置。"""
     _require(isinstance(hand, list), '手牌必须是列表。')
     cards = []
     for index, card in enumerate(hand):
         card_id = card['id']
         _require(isinstance(card_id, str) and card_id in CARDS,
                  '仅支持 Strike_R、Defend_R 和 Bash 手牌。')
-        _require(type(card['upgrades']) is int and card['upgrades'] == 0,
-                 '仅支持未升级的牌。')
+        _require(type(card['upgrades']) is int and card['upgrades'] in (0, 1),
+                 '基础牌仅支持未升级或升级一次。')
         has_target, effect = CARDS[card_id]
+        effect = UPGRADED_EFFECTS[card_id] if card['upgrades'] else '基础' + effect
+        effect += '（实际效果受双方能力影响）'
         _require(card['has_target'] is has_target, '牌的目标类型不符合已覆盖规则。')
         _require(card['exhausts'] is False and card['ethereal'] is False,
                  '不支持修改了消耗或虚无属性的牌。')
@@ -141,5 +162,6 @@ def _summarize_hand(hand: list[dict]) -> list[dict]:
             'hand_index': index, 'play_index': index + 1, 'card_uuid': uuid,
             'id': card_id, 'name': name, 'cost': cost,
             'is_playable': card['is_playable'], 'has_target': has_target, 'effect': effect,
+            'upgrades': card['upgrades'],
         })
     return cards

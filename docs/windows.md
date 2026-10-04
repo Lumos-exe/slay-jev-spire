@@ -1,7 +1,7 @@
 # Windows 原生开发
 
 后续在 Windows 本机开发，让 Python 与 Steam 游戏运行在同一系统。
-当前只提供离线 CLI；CommunicationMod 进程接入仍需下一阶段实测。
+当前提供离线 CLI 和 CommunicationMod 状态采集入口；配置与现场测试见 [实时采集指南](live-capture.md)。
 
 ## 准备工具
 
@@ -20,8 +20,8 @@ cd slay-jev-spire
 py -3.12 --version
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e '.[dev]'
-.\.venv\Scripts\python.exe main.py --mode mock
-.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -X utf8 main.py --mode mock
+.\.venv\Scripts\python.exe -X utf8 -m pytest -q
 ```
 
 私有仓库使用 Git 的登录提示完成 GitHub 登录。已克隆后更新使用 `git pull`。
@@ -34,6 +34,8 @@ Linux 虚拟环境不能直接迁移到 Windows；Git 只同步源码和依赖�
 VS Code 执行 **Python: Select Interpreter**，选择 `.venv\Scripts\python.exe`。
 项目文本统一为 UTF-8，Git 使用 LF 行尾；JSONL 读写已显式指定 UTF-8。
 
+Windows 重定向或捕获标准输出时可能采用系统代码页；启动时加 `-X utf8` 可统一 Python 的文本编码，避免中文输出乱码。
+
 ## 安全设置 Jev 密钥
 
 在将要运行程序的同一个 PowerShell 中输入：
@@ -41,7 +43,7 @@ VS Code 执行 **Python: Select Interpreter**，选择 `.venv\Scripts\python.exe
 ```powershell
 $jevSecret = Read-Host 'Jev API key' -AsSecureString
 $env:TYPESAFE_API_KEY = [System.Net.NetworkCredential]::new('', $jevSecret).Password
-.\.venv\Scripts\python.exe main.py --mode jev --log logs/jev.jsonl
+.\.venv\Scripts\python.exe -X utf8 main.py --mode jev --log logs/jev.jsonl
 Remove-Item Env:TYPESAFE_API_KEY
 Remove-Variable jevSecret
 ```
@@ -57,4 +59,6 @@ Remove-Variable jevSecret
 4. 再开始 CommunicationMod 传输层接入，在 Mod 配置中使用 Windows `.venv\Scripts\python.exe` 和专用协议入口；不能直接把现有人类可读 CLI 当协议进程启动。
 
 WSL 的 `.venv`、密钥、记录和缓存不随仓库上传。
-截至 2026-10-03，自动化验证仍是在 WSL2 完成，Windows 运行、真实 Jev 请求与游戏控制均尚未实测。
+2026-10-03 已使用 Codex 内置的 Windows Python 3.12.14 创建本项目 `.venv`，安装 `.[dev]`，验证模拟 CLI、UTF-8 输出和 JSONL 写入；35 项测试全部通过，`pip check` 未发现依赖冲突。真实 Jev 请求与游戏控制仍未实测。
+
+本次 `.venv` 的基础解释器位于 Codex 运行时目录，依赖该运行时继续存在。长期独立开发建议安装自己的 Windows Python，再用它重新创建 `.venv`；不应将当前虚拟环境搬到另一台机器。

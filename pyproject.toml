@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "slay-jev-spire"
 version = "0.1.0"
-description = "Offline single-decision experiment using CommunicationMod snapshots and Jev"
+description = "Offline and live single-decision experiment using CommunicationMod and Jev"
 requires-python = ">=3.12"
 dependencies = ["typesafe-sdk==0.7.2"]
 

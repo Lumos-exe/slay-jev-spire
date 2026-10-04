@@ -70,7 +70,8 @@ flowchart TD
 | `records` | 记录结构与持久化 | 读取密钥进行脱敏，追加记录文件 |
 | `cli` | 参数、文件输入、流程协调、终端展示 | 读样本、显示输出，调用记录模块 |
 
-约束：候选命令由程序生成，选择器只能返回候选。任何模块都不执行游戏命令。
+约束：候选命令由程序生成，选择器只能返回候选。离线模块不执行游戏命令；
+实时传输入口可选执行一个模拟候选，并记录后续游戏响应。
 模拟选择器没有 SDK 导入，整个模拟路径只需要标准库。
 
 ## 3. 模块之间传什么数据
@@ -118,7 +119,7 @@ flowchart TD
 | `_validate_context(raw)` | 原始协议字典 → `(combat, commands)` | 校验游戏内、稳定战斗、铁甲战士、无选择界面、允许的遗物及无 limbo |
 | `_summarize_player(player)` | 玩家协议字段 → 玩家摘要 | 校验存活、无 powers/充能球，提取生命、格挡和能量 |
 | `_summarize_hand(hand)` | 原始手牌数组 → 手牌摘要数组 | 校验基础牌和属性，保留原始位置与 UUID，加入基础效果说明 |
-| `_summarize_enemies(monsters)` | 原始怪物数组 → 怪物摘要数组 | 校验无 powers 与字段，保留原索引，未知伤害保持未知，要求存在可选目标 |
+| `_summarize_enemies(monsters)` | 原始怪物数组 → 怪物摘要数组 | 校验字段与仅支持蜷身的 powers，保留原索引，未知伤害保持未知，要求存在可选目标 |
 | `_require(condition, message)` | 校验条件与安全提示 → 无返回值 | 条件不成立时抛出 `UnsupportedState` |
 | `_integer(value, minimum)` | 待检查值 → 整数 | 拒绝布尔值和无效数字；默认下限为零，可显式允许负数 |
 | `_string(value)` | 待检查值 → 非空字符串 | 拒绝缺失或错误类型的文字字段 |
@@ -199,12 +200,12 @@ flowchart TD
 | 新的记录字段 | `slay_jev_spire/models.py`、`slay_jev_spire/records.py` | 先更新数据契约，再更新记录构造/序列化 |
 | CLI 参数或终端排版 | `slay_jev_spire/cli.py` | 参数、显示、退出码；不实现牌规则 |
 | DeepSeek 分析 | `slay_jev_spire/analysis/deepseek.py` | DeepSeek 请求、分析与可检验策略建议；消费摘要/决策，不执行命令 |
-| CommunicationMod 实时传输 | `slay_jev_spire/transport/communication_mod.py` | `ready` 握手、逐行 JSON、命令写入与刷新；输出协议文本，不输出终端说明 |
+| CommunicationMod 实时传输 | `slay_jev_spire/transport/communication_mod.py` | 握手、STATE 请求、JSON 采集；可选模拟/Jev 单步执行，Jev 返回后校验新状态并保存响应 |
 | 离线/实时共享的单步流程 | `slay_jev_spire/application.py` | 在第二个入口加入时，从 CLI 提取“准备 → 选择 → 构造记录”的公共流程 |
-| 完整对局的循环控制 | `slay_jev_spire/session.py` | 读取下一状态、调用单步流程、协调传输、结束对局；不自行解析牌字段 |
+| 战斗循环控制（已实现） | `slay_jev_spire/session.py` | CombatSession 协调刷新、选择、状态校验、发送确认、上限、暂停与战斗结束；完整对局流程待扩展 |
 | 多个可对比的策略版本 | `slay_jev_spire/strategies/policy.py` | 策略配置、版本标识、决策指令；和模型请求代码分开 |
 | 固定种子与独立评估局 | `slay_jev_spire/evaluation/runner.py`、`metrics.py` | 前者组织评估对局，后者计算指标；明确区分策略生成数据与独立评估数据 |
-| 多服务共用的环境配置 | `slay_jev_spire/config.py` | 在 DeepSeek/实时入口加入时集中读取环境与校验配置；不存储密钥文件 |
+| 运行时密钥配置（已实现） | `slay_jev_spire/config.py` | 环境密钥优先，否则读取 Windows 当前用户 DPAPI 加密配置到进程环境；configure_key.py 隐藏输入保存 |
 
 当 Jev 调用、策略规则和多个服务不再适合放在同一文件时，把 `selectors.py` 拆成
 `selectors/__init__.py`、`selectors/validation.py`、`selectors/mock.py`、`selectors/jev.py`：

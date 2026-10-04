@@ -29,6 +29,9 @@ def generate_actions(summary: dict, available_commands: list[str]) -> list[Actio
                     command += f" {target_index}"
                     action_id += f"_{target_index}"
                     description += f" → 怪物 {target_index}：{enemy['name']}"
+                    for power in enemy.get('powers', []):
+                        if power['id'] == 'Curl Up':
+                            description += f"（蜷身：受到攻击后获得 {power['amount']} 格挡，触发一次）"
                 actions.append({
                     "id": action_id, "command": command, "description": description,
                     "hand_index": card["hand_index"], "card_uuid": card["card_uuid"],

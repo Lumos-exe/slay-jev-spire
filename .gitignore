@@ -7,3 +7,7 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+tools/bin/
+config/*.local.json
+config/*.dpapi
+config/*.dpapi.tmp

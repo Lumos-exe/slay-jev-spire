@@ -1,0 +1,1079 @@
+{
+  "available_commands": [
+    "choose",
+    "proceed",
+    "key",
+    "click",
+    "wait",
+    "state"
+  ],
+  "ready_for_command": true,
+  "in_game": true,
+  "game_state": {
+    "choice_list": [
+      "gold",
+      "potion",
+      "card"
+    ],
+    "screen_type": "COMBAT_REWARD",
+    "screen_state": {
+      "rewards": [
+        {
+          "gold": 13,
+          "reward_type": "GOLD"
+        },
+        {
+          "potion": {
+            "requires_target": false,
+            "can_use": true,
+            "can_discard": true,
+            "name": "混沌药水",
+            "id": "EntropicBrew"
+          },
+          "reward_type": "POTION"
+        },
+        {
+          "reward_type": "CARD"
+        }
+      ]
+    },
+    "seed": -1117731499988838289,
+    "deck": [
+      {
+        "exhausts": false,
+        "is_playable": false,
+        "cost": 1,
+        "name": "打击",
+        "id": "Strike_R",
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "6edf7ac5-6922-47e7-93f6-fad999acc682",
+        "upgrades": 0,
+        "rarity": "BASIC",
+        "has_target": true
+      },
+      {
+        "exhausts": false,
+        "is_playable": false,
+        "cost": 1,
+        "name": "打击",
+        "id": "Strike_R",
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "7c6ca7da-6a46-4f70-adbe-932f3be23847",
+        "upgrades": 0,
+        "rarity": "BASIC",
+        "has_target": true
+      },
+      {
+        "exhausts": false,
+        "is_playable": false,
+        "cost": 1,
+        "name": "打击",
+        "id": "Strike_R",
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "449519b9-3cc5-4912-a62e-c01c16d09a89",
+        "upgrades": 0,
+        "rarity": "BASIC",
+        "has_target": true
+      },
+      {
+        "exhausts": false,
+        "is_playable": false,
+        "cost": 1,
+        "name": "打击",
+        "id": "Strike_R",
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "30109eb3-8f41-4e06-bea3-5b089114995c",
+        "upgrades": 0,
+        "rarity": "BASIC",
+        "has_target": true
+      },
+      {
+        "exhausts": false,
+        "is_playable": false,
+        "cost": 1,
+        "name": "打击",
+        "id": "Strike_R",
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "5af65dc1-e053-48d0-aaf6-c597fb3f3ecd",
+        "upgrades": 0,
+        "rarity": "BASIC",
+        "has_target": true
+      },
+      {
+        "exhausts": false,
+        "is_playable": false,
+        "cost": 1,
+        "name": "防御",
+        "id": "Defend_R",
+        "type": "SKILL",
+        "ethereal": false,
+        "uuid": "425637fe-572d-44f3-a825-0ce4ec340552",
+        "upgrades": 0,
+        "rarity": "BASIC",
+        "has_target": false
+      },
+      {
+        "exhausts": false,
+        "is_playable": false,
+        "cost": 1,
+        "name": "防御",
+        "id": "Defend_R",
+        "type": "SKILL",
+        "ethereal": false,
+        "uuid": "e7357c66-f66d-40d6-90c0-9c359a577d92",
+        "upgrades": 0,
+        "rarity": "BASIC",
+        "has_target": false
+      },
+      {
+        "exhausts": false,
+        "is_playable": false,
+        "cost": 1,
+        "name": "防御",
+        "id": "Defend_R",
+        "type": "SKILL",
+        "ethereal": false,
+        "uuid": "16417d2d-0615-4c64-850a-f9c2087ce5a6",
+        "upgrades": 0,
+        "rarity": "BASIC",
+        "has_target": false
+      },
+      {
+        "exhausts": false,
+        "is_playable": false,
+        "cost": 1,
+        "name": "防御",
+        "id": "Defend_R",
+        "type": "SKILL",
+        "ethereal": false,
+        "uuid": "dcccbb32-851a-4775-8399-225d21d8495e",
+        "upgrades": 0,
+        "rarity": "BASIC",
+        "has_target": false
+      },
+      {
+        "exhausts": false,
+        "is_playable": false,
+        "cost": 2,
+        "name": "痛击",
+        "id": "Bash",
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "fa1f8742-1d16-453f-b6d8-c81ead7339a5",
+        "upgrades": 0,
+        "rarity": "BASIC",
+        "has_target": true
+      }
+    ],
+    "relics": [
+      {
+        "name": "燃烧之血",
+        "id": "Burning Blood",
+        "counter": -1
+      }
+    ],
+    "max_hp": 80,
+    "act_boss": "The Guardian",
+    "gold": 99,
+    "action_phase": "WAITING_ON_USER",
+    "act": 1,
+    "screen_name": "COMBAT_REWARD",
+    "room_phase": "COMPLETE",
+    "is_screen_up": true,
+    "potions": [
+      {
+        "requires_target": false,
+        "can_use": false,
+        "can_discard": false,
+        "name": "药水栏",
+        "id": "Potion Slot"
+      },
+      {
+        "requires_target": false,
+        "can_use": false,
+        "can_discard": false,
+        "name": "药水栏",
+        "id": "Potion Slot"
+      },
+      {
+        "requires_target": false,
+        "can_use": false,
+        "can_discard": false,
+        "name": "药水栏",
+        "id": "Potion Slot"
+      }
+    ],
+    "current_hp": 79,
+    "floor": 1,
+    "ascension_level": 0,
+    "class": "IRONCLAD",
+    "map": [
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 0,
+            "y": 1
+          }
+        ],
+        "x": 0,
+        "y": 0,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 1,
+            "y": 1
+          },
+          {
+            "x": 2,
+            "y": 1
+          }
+        ],
+        "x": 2,
+        "y": 0,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 4,
+            "y": 1
+          }
+        ],
+        "x": 4,
+        "y": 0,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 1,
+            "y": 2
+          }
+        ],
+        "x": 0,
+        "y": 1,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 1,
+            "y": 2
+          }
+        ],
+        "x": 1,
+        "y": 1,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 1,
+            "y": 2
+          },
+          {
+            "x": 2,
+            "y": 2
+          }
+        ],
+        "x": 2,
+        "y": 1,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 5,
+            "y": 2
+          }
+        ],
+        "x": 4,
+        "y": 1,
+        "parents": []
+      },
+      {
+        "symbol": "$",
+        "children": [
+          {
+            "x": 0,
+            "y": 3
+          },
+          {
+            "x": 2,
+            "y": 3
+          }
+        ],
+        "x": 1,
+        "y": 2,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 3,
+            "y": 3
+          }
+        ],
+        "x": 2,
+        "y": 2,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 6,
+            "y": 3
+          }
+        ],
+        "x": 5,
+        "y": 2,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 0,
+            "y": 4
+          }
+        ],
+        "x": 0,
+        "y": 3,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 1,
+            "y": 4
+          },
+          {
+            "x": 2,
+            "y": 4
+          }
+        ],
+        "x": 2,
+        "y": 3,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 3,
+            "y": 4
+          }
+        ],
+        "x": 3,
+        "y": 3,
+        "parents": []
+      },
+      {
+        "symbol": "$",
+        "children": [
+          {
+            "x": 6,
+            "y": 4
+          }
+        ],
+        "x": 6,
+        "y": 3,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 1,
+            "y": 5
+          }
+        ],
+        "x": 0,
+        "y": 4,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 2,
+            "y": 5
+          }
+        ],
+        "x": 1,
+        "y": 4,
+        "parents": []
+      },
+      {
+        "symbol": "$",
+        "children": [
+          {
+            "x": 2,
+            "y": 5
+          },
+          {
+            "x": 3,
+            "y": 5
+          }
+        ],
+        "x": 2,
+        "y": 4,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 4,
+            "y": 5
+          }
+        ],
+        "x": 3,
+        "y": 4,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 6,
+            "y": 5
+          }
+        ],
+        "x": 6,
+        "y": 4,
+        "parents": []
+      },
+      {
+        "symbol": "E",
+        "children": [
+          {
+            "x": 2,
+            "y": 6
+          }
+        ],
+        "x": 1,
+        "y": 5,
+        "parents": []
+      },
+      {
+        "symbol": "E",
+        "children": [
+          {
+            "x": 2,
+            "y": 6
+          },
+          {
+            "x": 3,
+            "y": 6
+          }
+        ],
+        "x": 2,
+        "y": 5,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 3,
+            "y": 6
+          }
+        ],
+        "x": 3,
+        "y": 5,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 3,
+            "y": 6
+          }
+        ],
+        "x": 4,
+        "y": 5,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 5,
+            "y": 6
+          }
+        ],
+        "x": 6,
+        "y": 5,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 1,
+            "y": 7
+          },
+          {
+            "x": 2,
+            "y": 7
+          }
+        ],
+        "x": 2,
+        "y": 6,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 2,
+            "y": 7
+          },
+          {
+            "x": 4,
+            "y": 7
+          }
+        ],
+        "x": 3,
+        "y": 6,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 6,
+            "y": 7
+          }
+        ],
+        "x": 5,
+        "y": 6,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 0,
+            "y": 8
+          }
+        ],
+        "x": 1,
+        "y": 7,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 1,
+            "y": 8
+          },
+          {
+            "x": 2,
+            "y": 8
+          },
+          {
+            "x": 3,
+            "y": 8
+          }
+        ],
+        "x": 2,
+        "y": 7,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 4,
+            "y": 8
+          }
+        ],
+        "x": 4,
+        "y": 7,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 6,
+            "y": 8
+          }
+        ],
+        "x": 6,
+        "y": 7,
+        "parents": []
+      },
+      {
+        "symbol": "T",
+        "children": [
+          {
+            "x": 0,
+            "y": 9
+          }
+        ],
+        "x": 0,
+        "y": 8,
+        "parents": []
+      },
+      {
+        "symbol": "T",
+        "children": [
+          {
+            "x": 0,
+            "y": 9
+          }
+        ],
+        "x": 1,
+        "y": 8,
+        "parents": []
+      },
+      {
+        "symbol": "T",
+        "children": [
+          {
+            "x": 1,
+            "y": 9
+          }
+        ],
+        "x": 2,
+        "y": 8,
+        "parents": []
+      },
+      {
+        "symbol": "T",
+        "children": [
+          {
+            "x": 4,
+            "y": 9
+          }
+        ],
+        "x": 3,
+        "y": 8,
+        "parents": []
+      },
+      {
+        "symbol": "T",
+        "children": [
+          {
+            "x": 5,
+            "y": 9
+          }
+        ],
+        "x": 4,
+        "y": 8,
+        "parents": []
+      },
+      {
+        "symbol": "T",
+        "children": [
+          {
+            "x": 6,
+            "y": 9
+          }
+        ],
+        "x": 6,
+        "y": 8,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 0,
+            "y": 10
+          },
+          {
+            "x": 1,
+            "y": 10
+          }
+        ],
+        "x": 0,
+        "y": 9,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 1,
+            "y": 10
+          }
+        ],
+        "x": 1,
+        "y": 9,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 4,
+            "y": 10
+          }
+        ],
+        "x": 4,
+        "y": 9,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 5,
+            "y": 10
+          }
+        ],
+        "x": 5,
+        "y": 9,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 6,
+            "y": 10
+          }
+        ],
+        "x": 6,
+        "y": 9,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 0,
+            "y": 11
+          }
+        ],
+        "x": 0,
+        "y": 10,
+        "parents": []
+      },
+      {
+        "symbol": "E",
+        "children": [
+          {
+            "x": 1,
+            "y": 11
+          },
+          {
+            "x": 2,
+            "y": 11
+          }
+        ],
+        "x": 1,
+        "y": 10,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 5,
+            "y": 11
+          }
+        ],
+        "x": 4,
+        "y": 10,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 5,
+            "y": 11
+          }
+        ],
+        "x": 5,
+        "y": 10,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 6,
+            "y": 11
+          }
+        ],
+        "x": 6,
+        "y": 10,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 0,
+            "y": 12
+          }
+        ],
+        "x": 0,
+        "y": 11,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 1,
+            "y": 12
+          }
+        ],
+        "x": 1,
+        "y": 11,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 3,
+            "y": 12
+          }
+        ],
+        "x": 2,
+        "y": 11,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 5,
+            "y": 12
+          }
+        ],
+        "x": 5,
+        "y": 11,
+        "parents": []
+      },
+      {
+        "symbol": "E",
+        "children": [
+          {
+            "x": 5,
+            "y": 12
+          }
+        ],
+        "x": 6,
+        "y": 11,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 0,
+            "y": 13
+          }
+        ],
+        "x": 0,
+        "y": 12,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 1,
+            "y": 13
+          }
+        ],
+        "x": 1,
+        "y": 12,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 2,
+            "y": 13
+          }
+        ],
+        "x": 3,
+        "y": 12,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 4,
+            "y": 13
+          },
+          {
+            "x": 5,
+            "y": 13
+          },
+          {
+            "x": 6,
+            "y": 13
+          }
+        ],
+        "x": 5,
+        "y": 12,
+        "parents": []
+      },
+      {
+        "symbol": "E",
+        "children": [
+          {
+            "x": 0,
+            "y": 14
+          }
+        ],
+        "x": 0,
+        "y": 13,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 0,
+            "y": 14
+          }
+        ],
+        "x": 1,
+        "y": 13,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 2,
+            "y": 14
+          }
+        ],
+        "x": 2,
+        "y": 13,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 3,
+            "y": 14
+          }
+        ],
+        "x": 4,
+        "y": 13,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 4,
+            "y": 14
+          }
+        ],
+        "x": 5,
+        "y": 13,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 6,
+            "y": 14
+          }
+        ],
+        "x": 6,
+        "y": 13,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 3,
+            "y": 16
+          }
+        ],
+        "x": 0,
+        "y": 14,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 3,
+            "y": 16
+          }
+        ],
+        "x": 2,
+        "y": 14,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 3,
+            "y": 16
+          }
+        ],
+        "x": 3,
+        "y": 14,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 3,
+            "y": 16
+          }
+        ],
+        "x": 4,
+        "y": 14,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 3,
+            "y": 16
+          }
+        ],
+        "x": 6,
+        "y": 14,
+        "parents": []
+      }
+    ],
+    "room_type": "MonsterRoom"
+  }
+}
