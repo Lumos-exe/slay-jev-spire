@@ -19,6 +19,44 @@ import java.util.HashMap;
             paramtypez={AbstractCard.class})
 public class CardValues {
     private static boolean benchmarkNormalized = false;
+    private static com.megacrit.cardcrawl.ui.FtueTip lastTutorial;
+    private static final ArrayList<String> tutorialAcknowledgements = new ArrayList<String>();
+
+    @SpirePatch(clz=com.megacrit.cardcrawl.ui.FtueTip.class, method="update")
+    public static class TutorialAcknowledgement {
+        @SpirePrefixPatch
+        public static SpireReturn<Void> prefix(com.megacrit.cardcrawl.ui.FtueTip __instance) {
+            if (!Boolean.getBoolean("jev.autoTutorials") || __instance.type == null
+                    || AbstractDungeon.ftue != __instance || lastTutorial == __instance) return SpireReturn.Continue();
+            lastTutorial = __instance;
+            // Exact native GotItButton confirmation branch; no global mouse click.
+            com.megacrit.cardcrawl.helpers.controller.CInputActionSet.proceed.unpress();
+            com.megacrit.cardcrawl.core.CardCrawlGame.sound.play("DECK_OPEN");
+            tutorialAcknowledgements.add(__instance.type.toString());
+            if (__instance.type == com.megacrit.cardcrawl.ui.FtueTip.TipType.POWER) {
+                AbstractDungeon.cardRewardScreen.reopen();
+            } else {
+                AbstractDungeon.closeCurrentScreen();
+            }
+            return SpireReturn.Return(null);
+        }
+    }
+
+    @SpirePatch(cls="communicationmod.GameStateConverter", method="getGameState")
+    public static class AutomationState {
+        @SpirePostfixPatch
+        public static HashMap<String, Object> postfix(HashMap<String, Object> __result) {
+            if (__result != null) {
+                HashMap<String, Object> automation = new HashMap<String, Object>();
+                automation.put("auto_tutorials", Boolean.getBoolean("jev.autoTutorials"));
+                automation.put("tutorial_acknowledgements", new ArrayList<String>(tutorialAcknowledgements));
+                automation.put("active_tutorial", AbstractDungeon.ftue != null && AbstractDungeon.ftue.type != null
+                        ? AbstractDungeon.ftue.type.toString() : null);
+                __result.put("automation", automation);
+            }
+            return __result;
+        }
+    }
     @SpirePatch(clz=com.megacrit.cardcrawl.neow.NeowEvent.class, method="buttonEffect", paramtypez={int.class})
     public static class BenchmarkNeow {
         @SpirePrefixPatch

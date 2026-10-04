@@ -17,7 +17,7 @@ New-Item -ItemType Directory -Force -Path $classes | Out-Null
 & $compiler.Source --release 8 -classpath "$gameJar;$loaderJar" -d $classes (Join-Path $sourceRoot 'src\jevstate\CardValues.java')
 if ($LASTEXITCODE -ne 0) { throw 'Native state mod compilation failed.' }
 Copy-Item -LiteralPath (Join-Path $sourceRoot 'ModTheSpire.json') -Destination (Join-Path $classes 'ModTheSpire.json')
-$packageFiles = @('ModTheSpire.json', 'jevstate/CardValues.class', 'jevstate/CardValues$Powers.class', 'jevstate/CardValues$Relics.class', 'jevstate/CardValues$Potions.class', 'jevstate/CardValues$Counters.class', 'jevstate/CardValues$BenchmarkSetup.class', 'jevstate/CardValues$BenchmarkNeow.class', 'jevstate/CardValues$GridSelection.class')
+$packageFiles = @('ModTheSpire.json', 'jevstate/CardValues.class', 'jevstate/CardValues$Powers.class', 'jevstate/CardValues$Relics.class', 'jevstate/CardValues$Potions.class', 'jevstate/CardValues$Counters.class', 'jevstate/CardValues$BenchmarkSetup.class', 'jevstate/CardValues$BenchmarkNeow.class', 'jevstate/CardValues$GridSelection.class', 'jevstate/CardValues$TutorialAcknowledgement.class', 'jevstate/CardValues$AutomationState.class')
 $packageArguments = @('cf', $outputJar)
 foreach ($packageFile in $packageFiles) {
     $packageArguments += @('-C', $classes, $packageFile)
