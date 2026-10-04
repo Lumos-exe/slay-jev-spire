@@ -87,3 +87,39 @@ def test_missing_answer_is_rejected(monkeypatch, actions):
     monkeypatch.setattr(typesafe_sdk, "TypeSafeClient", Client)
     with pytest.raises(SelectionError):
         choose_jev({}, actions)
+
+
+def test_plan_payload_keeps_decision_facts_without_mutating_full_evidence():
+    from copy import deepcopy
+    from slay_jev_spire.selectors import plan_criteria
+    action={'kind':'turn_plan','sequence':[{'kind':'play','card_id':'Deep Breath','card_uuid':'uid','card_name':'深呼吸','target_index':None}],
+        'outcome':{'enemy_hp_by_target':[30],'incoming_hp_loss':None,'player_hp_after_turn':None,
+                   'remaining_energy':3,'block':0,'draw_count':2,'forecast_scope':'partial','combat_won':False,
+                   'known_hand_continuation':{'sequence':[{'card_id':'Strike_R','target_index':0}],
+                       'outcome':{'enemy_hp_by_target':[24],'incoming_hp_loss':8,'player_hp_after_turn':52,'remaining_energy':2,'block':0},
+                       'assumption':'Repeated explanation'}},'checkpoint':'draw_cards','uncertainties':[]}
+    before=deepcopy(action);wire=plan_criteria(action)
+    assert action==before
+    assert wire['outcome']['draw_count']==2 and wire['outcome']['incoming_hp_loss'] is None
+    assert wire['known_hand_continuation']['enemy_hp_by_target']==[24]
+    assert wire['sequence'][0]['card_uuid']=='uid'
+
+
+def test_card_templates_are_lossless_and_share_identity_with_plans():
+    from copy import deepcopy
+    from slay_jev_spire.selectors import model_payload
+    card={'id':'Strike_R','uuid':'original-uuid','type':'ATTACK','cost':1,'is_playable':True,
+          'native_values':{'damage':6,'cost_for_turn':1}}
+    state={'hand':[dict(card,hand_index=0)],'deck':[card]}
+    original=deepcopy(state)
+    action={'id':'plan','kind':'turn_plan','sequence':[{'kind':'play','card_id':'Strike_R','card_uuid':'original-uuid'}],
+            'outcome':{'enemy_hp_by_target':[3],'incoming_hp_loss':0,'forecast_scope':'deterministic'}}
+    wire,criteria,refs=model_payload(state,[action])
+    assert state==original and len(wire['card_templates'])==1
+    assert wire['hand'][0]['uuid']==criteria['plan']['sequence'][0]['card_uuid']
+    def expand(v):
+        if isinstance(v,list):return [expand(x) for x in v]
+        if not isinstance(v,dict):return v
+        if '$card' in v:v={**wire['card_templates'][v['$card']],**{k:x for k,x in v.items() if k!='$card'}}
+        return {k:refs.get(x,x) if k in {'uuid','card_uuid'} and isinstance(x,str) else expand(x) for k,x in v.items()}
+    assert expand({k:v for k,v in wire.items() if k!='card_templates'})==original

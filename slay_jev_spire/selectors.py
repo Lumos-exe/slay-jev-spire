@@ -3,6 +3,8 @@
 import os
 import math
 import time
+import json
+from hashlib import sha256
 from copy import deepcopy
 
 from .models import Action, Decision
@@ -27,6 +29,7 @@ INSTRUCTIONS = (
     "standing_hp_loss_estimate 只是当前已知状态下的静态估计，未包含未知抽牌及效果，不能当成最终承伤。"
     "known_hand_continuation 是抽牌不改变生命、费用等状态时，仅靠当前已知手牌就能继续执行的条件计划，不是假设抽到了好牌。"
     "抽牌后仍能继续行动：比较已有手牌的条件续打和新增选项；draw_prospects 同时指出剩余能量能否支付抽到的牌。"
+    "状态中带 $card 的对象引用 card_templates 中的完整牌信息，再叠加该对象的实例字段。c1 等是本次请求内的牌实例标识，手牌和计划使用同一标识。"
 )
 
 
@@ -75,7 +78,49 @@ def validate_distribution(answer, actions):
 def plan_criteria(action):
     if action.get('kind') != 'turn_plan':
         return action['description']
-    return {k: action[k] for k in ('description', 'sequence', 'outcome', 'checkpoint', 'uncertainties', 'notes') if k in action}
+    # Full plans remain in JSONL. Send decision facts once, not repeated prose,
+    # UI names, and a second full outcome inside every conditional continuation.
+    out = action['outcome']
+    fields = ('enemy_hp_by_target','incoming_hp_loss','player_hp_after_turn',
+              'standing_hp_loss_estimate','remaining_energy','block','powers',
+              'self_damage','healing','draw_count','generated_cards','exhaust_count',
+              'combat_won','forecast_scope')
+    result = {'sequence':[{k:v for k,v in s.items() if k!='card_name' and v is not None} for s in action['sequence']],
+              'outcome':{k:out[k] for k in fields if k in out},
+              'checkpoint':action.get('checkpoint'),'uncertainties':action.get('uncertainties',[])}
+    if out.get('draw_prospects'):
+        result['draw_prospects']=[{k:p[k] for k in ('count','pool_size','affordable_cards','expected_affordable_draws','has_on_draw_risks') if k in p} for p in out['draw_prospects']]
+    continuation=out.get('known_hand_continuation')
+    if continuation:
+        result['known_hand_continuation']={'sequence':continuation['sequence'],
+            **{k:continuation['outcome'][k] for k in ('enemy_hp_by_target','incoming_hp_loss','player_hp_after_turn','remaining_energy','block')},
+            'scope':'conditional_known_hand'}
+    if action.get('notes'):
+        result['notes']=[{k:v for k,v in n.items() if k!='continuation'} for n in action['notes']]
+    return result
+
+
+def model_payload(summary, actions):
+    """Lossless card-template sharing and request-local identity aliases."""
+    templates = {}; aliases = {}
+    dynamic = {'uuid','card_uuid','hand_index','play_index','is_playable','valid_target_indices'}
+    def alias(value):
+        if value not in aliases: aliases[value] = f'c{len(aliases)+1}'
+        return aliases[value]
+    def visit(value, cards=False):
+        if isinstance(value,list): return [visit(v,cards) for v in value]
+        if not isinstance(value,dict): return value
+        if cards and 'id' in value and 'uuid' in value and ('native_values' in value or 'type' in value):
+            template={k:visit(v,False) for k,v in value.items() if k not in dynamic}
+            key='card_'+sha256(json.dumps(template,sort_keys=True,ensure_ascii=False).encode()).hexdigest()[:12]
+            templates[key]=template
+            instance={k:alias(v) if k in {'uuid','card_uuid'} else visit(v,False) for k,v in value.items() if k in dynamic}
+            return {'$card':key,**instance}
+        return {k:alias(v) if k in {'uuid','card_uuid','selection_uuid'} and isinstance(v,str) else visit(v,cards) for k,v in value.items()}
+    state=visit(summary,True)
+    criteria=visit({a['id']:plan_criteria(a) for a in actions})
+    if templates: state={'card_templates':dict(sorted(templates.items())),**state}
+    return state,criteria,{v:k for k,v in aliases.items()}
 
 
 def choose_jev(summary: dict, actions: list[Action]) -> Decision:
@@ -100,6 +145,7 @@ def choose_jev(summary: dict, actions: list[Action]) -> Decision:
 
     started = time.monotonic()
     requested_model = os.environ.get('JEV_MODEL', MODEL)
+    wire_state, wire_criteria, references = model_payload(summary, actions)
     try:
         with TypeSafeClient(
             api_key=key,
@@ -109,13 +155,15 @@ def choose_jev(summary: dict, actions: list[Action]) -> Decision:
             timeout=30.0,
         ) as client:
             response = client.system_one(
-                state=summary,
+                state=wire_state,
                 questions={"action": Choice(
                     instructions=INSTRUCTIONS,
-                    criteria={action["id"]: plan_criteria(action) for action in actions},
+                    criteria=wire_criteria,
                 )},
             )
-    except TypeSafeError:
+    except TypeSafeError as error:
+        if 'max_tokens_exceeded' in str(error):
+            raise SelectionError('Jev 输入超过模型上下文上限；需压缩状态或候选表达。未重试、未执行命令。') from None
         # Do not stringify SDK exceptions: they can contain request/response data.
         raise SelectionError("Jev 请求失败或响应格式无效；请检查密钥、网络和账户。未自动重试。") from None
 
@@ -132,4 +180,6 @@ def choose_jev(summary: dict, actions: list[Action]) -> Decision:
         "choice_margin": margin,
         "latency_ms": round((time.monotonic() - started) * 1000, 2),
         "usage": {k: getattr(usage, k, None) for k in ('input_tokens', 'output_tokens')},
+        "model_input_format": 'card-templates-v1',
+        "card_references": references,
     }
