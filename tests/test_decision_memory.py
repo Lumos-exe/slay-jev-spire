@@ -2,8 +2,8 @@ import copy
 import json
 from pathlib import Path
 
-from slay_jev_spire.run_session import RunSession
-from slay_jev_spire.run_control import resume_session
+from slay_jev_spire.session import RunSession
+from slay_jev_spire.session import resume_session
 from slay_jev_spire.selectors import choose_mock
 from tests.test_journey import reward
 
@@ -79,7 +79,7 @@ def test_skip_memory_survives_resume_and_process_restart(tmp_path):
 
 
 def test_same_state_loop_stops_before_another_model_call(tmp_path):
-    from slay_jev_spire.decision_memory import DecisionMemory
+    from slay_jev_spire.session import DecisionMemory
     memory = DecisionMemory()
     summary = {'screen_type': 'EVENT', 'floor': 2}
     actions = [{'id': 'leave', 'command': 'CHOOSE 0'}]
@@ -99,8 +99,9 @@ def test_combat_context_preserves_native_damage_and_warns_about_unused_energy(tm
     RunSession(tmp_path, mode='mock', selector=inspect).receive(raw)
     summary, actions = seen[-1]
     assert summary['decision_context']['playable_card_count'] > 0
-    end = next(a for a in actions if a['command'] == 'END')
-    assert 'energy' in end['description'] and 'playable' in end['description']
+    assert summary['decision_context']['remaining_energy'] == 3
+    assert all(a['kind'] == 'turn_plan' for a in actions)
+    assert any(a['sequence'] == [{'kind': 'end'}] for a in actions)
 
 
 def test_action_and_time_limits_stop_without_model_calls(tmp_path):
@@ -120,12 +121,12 @@ def test_restore_does_not_hide_anonymous_multiple_rewards(tmp_path):
     multiple = copy.deepcopy(rewards)
     multiple['game_state']['screen_state']['rewards'].append({'reward_type': 'CARD'})
     multiple['game_state']['choice_list'].append('card')
-    actions = __import__('slay_jev_spire.journey', fromlist=['prepare_journey']).prepare_journey(multiple)[1]
+    actions = __import__('slay_jev_spire.screens', fromlist=['prepare_journey']).prepare_journey(multiple)[1]
     assert len([a for a in s.memory.filter(multiple, actions) if a.get('reward', {}).get('reward_type') == 'CARD']) == 2
 
 
 def test_numeric_resume_flag_can_expand_old_small_budget(tmp_path):
-    from slay_jev_spire.run_control import handle_resume_request
+    from slay_jev_spire.session import handle_resume_request
     s = RunSession(tmp_path, mode='mock', max_decisions=20)
     s.calls = 20
     s._stop('decision_limit')
@@ -141,11 +142,13 @@ def test_run_cli_accepts_whole_run_budget_but_combat_stays_bounded(tmp_path):
     whole = subprocess.run(args + ['--run', 'mock'], input='', text=True, capture_output=True, timeout=10)
     assert whole.returncode == 0, whole.stderr
     combat = subprocess.run(args + ['--combat', 'mock'], input='', text=True, capture_output=True, timeout=10)
-    assert combat.returncode == 2
+    assert combat.returncode == 0
+    invalid = subprocess.run(args + ['--combat', 'mock', '--max-decisions', '2001'], input='', text=True, capture_output=True, timeout=10)
+    assert invalid.returncode == 2 and invalid.stdout == ''
 
 
 def test_candidate_shows_target_calculation_separately_from_hp_loss():
-    from slay_jev_spire.decision_memory import describe_candidates
+    from slay_jev_spire.session import describe_candidates
     summary = {'hand': [{'uuid': 'c', 'target_damage_previews': [
         {'target_index': 0, 'damage_before_block': 9, 'source': 'game_calculateCardDamage'}]}]}
     actions = [{'id': 'a', 'kind': 'play', 'card_uuid': 'c', 'target_index': 0,

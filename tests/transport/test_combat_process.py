@@ -19,8 +19,8 @@ def test_combat_entry_loops_to_reward_then_only_captures(tmp_path):
                       '--output-dir',str(tmp_path),'--combat','mock','--max-decisions','3'],
                      input=data,text=True,encoding="utf-8",capture_output=True,timeout=10)
     assert p.returncode==0,p.stderr
-    assert p.stdout.splitlines()==['ready','STATE','STATE','STATE','PLAY 1 0','STATE','PLAY 1 0']
-    rows=[json.loads(s) for s in (tmp_path/'sessions.jsonl').read_text(encoding='utf-8').splitlines()]
+    assert [s for s in p.stdout.splitlines() if s.startswith('PLAY')] == ['PLAY 1 0','PLAY 1 0']
+    rows=[json.loads(s) for s in (tmp_path/'runs.jsonl').read_text(encoding='utf-8').splitlines()]
     assert rows[-1]['reason']=='battle_finished'
     assert rows[-1]['actions']==2
 

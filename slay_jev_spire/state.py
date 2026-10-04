@@ -1,28 +1,12 @@
-"""CommunicationMod 状态适配：校验范围、提取摘要、交给动作模块。
+"""Native state, legal actions and descriptions. No card whitelist."""
 
-所有函数只操作内存数据；不读取文件，不选择或执行动作。
-"""
-
-from .actions import generate_actions
-from .models import Action
-
-
+from copy import deepcopy
+import json
+from pathlib import Path
+import re
+from zipfile import ZipFile, BadZipFile
 class UnsupportedState(ValueError):
     """输入无效、状态超出覆盖范围或没有支持的候选动作。"""
-
-
-CARDS = {
-    'Strike_R': (True, '造成 6 点伤害'),
-    'Defend_R': (False, '获得 5 点格挡'),
-    'Bash': (True, '造成 8 点伤害，施加 2 层易伤'),
-}
-RELICS = {'Burning Blood', 'NeowsBlessing'}
-COMMON_POWERS = {'Strength', 'Dexterity', 'Weakened', 'Vulnerable', 'Frail'}
-UPGRADED_EFFECTS = {
-    'Strike_R': '基础造成 9 点伤害',
-    'Defend_R': '基础获得 8 点格挡',
-    'Bash': '基础造成 10 点伤害，施加 3 层易伤',
-}
 
 
 def _require(condition: bool, message: str) -> None:
@@ -44,124 +28,246 @@ def _string(value: object) -> str:
     return value
 
 
-def prepare_state(raw: dict) -> tuple[dict, list[Action]]:
-    """公共入口：原始协议 JSON → 精简摘要、候选列表。
-
-    校验范围后调用独立的 generate_actions。字段缺失、类型错误
-    和空候选统一抛出 UnsupportedState；不修改原始状态。
-    """
-    try:
-        combat, commands = _validate_context(raw)
-        summary = {
-            'turn': _integer(combat['turn'], 1),
-            'player': _summarize_player(combat['player']),
-            'hand': _summarize_hand(combat['hand']),
-            'enemies': _summarize_enemies(combat['monsters']),
-        }
-        actions = generate_actions(summary, commands)
-        _require(bool(actions), '当前支持范围内没有可选命令。')
-        return summary, actions
-    except (KeyError, TypeError, IndexError, AttributeError):
-        raise UnsupportedState('状态 JSON 缺少必要字段或字段类型错误。') from None
 
 
-def _validate_context(raw: dict) -> tuple[dict, list[str]]:
-    """校验角色、战斗阶段、界面与遗物；返回战斗数据和可用命令。"""
-    _require(raw['in_game'] is True and raw['ready_for_command'] is True,
-             '仅支持游戏内已准备好接收命令的状态。')
-    game = raw['game_state']
-    _require(game['class'] == 'IRONCLAD', '仅支持铁甲战士。')
-    _require(game['room_phase'] == 'COMBAT' and game['action_phase'] == 'WAITING_ON_USER',
-             '仅支持等待玩家操作的稳定战斗阶段。')
-    _require(game['screen_type'] == 'NONE' and game['is_screen_up'] is False,
-             '不支持选择界面或其他打开的界面。')
-    commands = raw['available_commands']
-    _require(isinstance(commands, list) and all(isinstance(c, str) for c in commands),
-             'available_commands 必须是命令列表。')
-    _require(isinstance(game['relics'], list), '遗物字段必须是列表。')
-    _require(all(r['id'] in RELICS for r in game['relics']),
-             '仅支持燃烧之血和涅奥的悲恸；其他遗物效果尚未覆盖。')
-    combat = game['combat_state']
-    _require(combat['limbo'] == [], '不支持正在结算的牌。')
-    return combat, commands
 
 
-def _summarize_player(player: dict) -> dict:
-    """校验存活、无充能球的玩家，提取数值与已覆盖的能力。"""
-    _require(player['orbs'] == [], '不支持充能球。')
-    summary = {
-        key: _integer(player[key]) for key in ('current_hp', 'max_hp', 'block', 'energy')
-    }
-    _require(player['current_hp'] > 0, '不支持玩家已死亡的状态。')
-    summary['powers'] = _summarize_powers(player['powers'], COMMON_POWERS)
-    return summary
+
+def _boolean(value):
+    _require(type(value) is bool, 'Native flag must be boolean.')
+    return value
 
 
-def _summarize_powers(powers: list[dict], allowed: set[str]) -> list[dict]:
-    """保留已覆盖能力的名称、ID 和层数；力量/敏捷可为负值。"""
-    _require(isinstance(powers, list), 'powers 必须是列表。')
+def _list(value):
+    _require(isinstance(value, list), 'Native collection must be a list.')
+    return value
+
+
+def _metadata(value):
+    _require(isinstance(value, dict), 'Native metadata must be an object.')
+    return deepcopy(value)
+
+
+def _powers(values):
     result = []
-    for power in powers:
-        power_id = _string(power['id'])
-        _require(power_id in allowed, '当前能力尚未覆盖。')
-        result.append({'id': power_id, 'name': _string(power['name']),
-                       'amount': _integer(power['amount'], None if power_id in {'Strength', 'Dexterity'} else 0)})
+    for value in _list(values):
+        item = _metadata(value)
+        _string(item['id'])
+        _string(item['name'])
+        _integer(item['amount'], None)
+        item['effect'] = 'unknown'
+        result.append(item)
     return result
 
 
-def _summarize_enemies(monsters: list[dict]) -> list[dict]:
-    """校验怪物能力，保留原始位置；负数伤害/攻击次数表示未知。"""
-    _require(isinstance(monsters, list), '怪物必须是列表。')
-    enemies = []
-    for index, monster in enumerate(monsters):
-        powers = _summarize_powers(monster['powers'], COMMON_POWERS | {'Curl Up', 'Ritual'})
-        _require(type(monster['is_gone']) is bool and type(monster['half_dead']) is bool,
-                 '怪物存活标志必须是布尔值。')
-        hp = _integer(monster['current_hp'])
-        damage = _integer(monster['move_adjusted_damage'], None)
-        hits = _integer(monster['move_hits'], None)
-        enemies.append({
-            'target_index': index,
-            'name': _string(monster['name']),
-            'current_hp': hp,
-            'max_hp': _integer(monster['max_hp']),
-            'block': _integer(monster['block']),
-            'is_gone': monster['is_gone'],
-            'half_dead': monster['half_dead'],
-            'intent': _string(monster['intent']),
-            'move_adjusted_damage': damage if damage >= 0 else None,
-            'move_hits': hits if hits >= 0 else None,
-            'powers': powers,
-        })
-    _require(any(e['current_hp'] > 0 and not e['is_gone'] and not e['half_dead'] for e in enemies),
-             '不支持没有存活目标的战斗状态。')
-    return enemies
+def _orbs(values):
+    result = []
+    for value in _list(values):
+        orb = _metadata(value)
+        _string(orb['id'])
+        if 'name' in orb:
+            _string(orb['name'])
+        for field in ('evoke_amount', 'passive_amount'):
+            if field in orb:
+                _integer(orb[field], None)
+        orb['effect'] = 'unknown'
+        result.append(orb)
+    return result
 
 
-def _summarize_hand(hand: list[dict]) -> list[dict]:
-    """校验基础牌及一次升级，保留当前费用、基础效果、UUID 与位置。"""
-    _require(isinstance(hand, list), '手牌必须是列表。')
-    cards = []
-    for index, card in enumerate(hand):
-        card_id = card['id']
-        _require(isinstance(card_id, str) and card_id in CARDS,
-                 '仅支持 Strike_R、Defend_R 和 Bash 手牌。')
-        _require(type(card['upgrades']) is int and card['upgrades'] in (0, 1),
-                 '基础牌仅支持未升级或升级一次。')
-        has_target, effect = CARDS[card_id]
-        effect = UPGRADED_EFFECTS[card_id] if card['upgrades'] else '基础' + effect
-        effect += '（实际效果受双方能力影响）'
-        _require(card['has_target'] is has_target, '牌的目标类型不符合已覆盖规则。')
-        _require(card['exhausts'] is False and card['ethereal'] is False,
-                 '不支持修改了消耗或虚无属性的牌。')
-        _require(type(card['is_playable']) is bool, '牌的可用标志必须是布尔值。')
-        cost = _integer(card['cost'])
-        uuid = _string(card['uuid'])
-        name = _string(card['name'])
-        cards.append({
-            'hand_index': index, 'play_index': index + 1, 'card_uuid': uuid,
-            'id': card_id, 'name': name, 'cost': cost,
-            'is_playable': card['is_playable'], 'has_target': has_target, 'effect': effect,
-            'upgrades': card['upgrades'],
-        })
-    return cards
+def _cards(values, hand=False):
+    result = []
+    for index, value in enumerate(_list(values)):
+        card = _metadata(value)
+        for field in ('id', 'name', 'uuid'):
+            _string(card[field])
+        for field in ('type', 'rarity'):
+            if field in card:
+                _string(card[field])
+        _integer(card['cost'], -2)
+        _integer(card['upgrades'])
+        for field in ('is_playable', 'has_target', 'exhausts', 'ethereal'):
+            _boolean(card[field])
+        card['effect'] = 'unknown'
+        if hand:
+            card.update(hand_index=index, play_index=index + 1, card_uuid=card['uuid'])
+        result.append(card)
+    return result
+
+
+def _enemies(values):
+    result = []
+    for index, value in enumerate(_list(values)):
+        enemy = _metadata(value)
+        for key in ('current_hp', 'max_hp', 'block'):
+            _integer(enemy[key])
+        for key in ('is_gone', 'half_dead'):
+            _boolean(enemy[key])
+        if 'is_dead' in enemy:
+            _boolean(enemy['is_dead'])
+        for key in ('name', 'intent'):
+            _string(enemy[key])
+        for key in ('move_adjusted_damage', 'move_hits'):
+            amount = _integer(enemy[key], None)
+            enemy[key] = amount if amount >= 0 else None
+        enemy['powers'] = _powers(enemy['powers'])
+        enemy['target_index'] = index
+        result.append(enemy)
+    return result
+
+
+def _live(enemies):
+    return [e for e in enemies if e['current_hp'] > 0 and not e['is_gone'] and not e['half_dead'] and not e.get('is_dead', False)]
+
+
+def _action(command, description, **metadata):
+    return {'id': command.lower().replace(' ', '_'), 'command': command, 'description': description,
+            'hand_index': None, 'card_uuid': None, 'target_index': None, **metadata}
+
+
+def potion_candidates(raw):
+    """Use original zero-based potion slots, gated by native flags and commands."""
+    try:
+        _require(raw['in_game'] is True and raw['ready_for_command'] is True, 'State is not ready.')
+        commands = _list(raw['available_commands'])
+        _require(all(isinstance(c, str) for c in commands), 'Invalid native commands.')
+        game = raw['game_state']
+        targets = None
+        actions = []
+        for index, value in enumerate(_list(game.get('potions', []))):
+            potion = _metadata(value)
+            potion_id = _string(potion['id'])
+            if potion_id == 'Potion Slot':
+                continue
+            use = _boolean(potion['can_use'])
+            discard = _boolean(potion['can_discard'])
+            targeted = _boolean(potion['requires_target'])
+            name = _string(potion['name'])
+            if 'potion' not in commands:
+                continue
+            metadata = dict(kind='potion', potion_index=index, potion_id=potion_id)
+            if use:
+                if targeted and targets is None:
+                    targets = _live(_enemies(game['combat_state']['monsters']))
+                for enemy in targets if targeted else [None]:
+                    target = enemy['target_index'] if enemy is not None else None
+                    command = f'POTION USE {index}' + (f' {target}' if target is not None else '')
+                    actions.append(_action(command, f'Use {name}', subaction='use', target_index=target, **metadata))
+            if discard:
+                actions.append(_action(f'POTION DISCARD {index}', f'Discard {name}', subaction='discard', **metadata))
+        return actions
+    except (KeyError, TypeError, AttributeError, IndexError):
+        raise UnsupportedState('Malformed native potion state.') from None
+
+
+def prepare_native_combat(raw):
+    """Return validated native metadata and only pre-generated legal commands."""
+    try:
+        _require(raw['in_game'] is True and raw['ready_for_command'] is True, 'State is not ready.')
+        game = raw['game_state']
+        _require(game['class'] == 'IRONCLAD', 'Only Ironclad is supported initially.')
+        _require(game['room_phase'] == 'COMBAT' and game['action_phase'] == 'WAITING_ON_USER', 'Combat is not stable.')
+        _require(game['screen_type'] == 'NONE' and game['is_screen_up'] is False, 'A selection screen is open.')
+        commands = _list(raw['available_commands'])
+        _require(all(isinstance(c, str) for c in commands), 'Invalid native commands.')
+        combat = game['combat_state']
+        _require(combat['limbo'] == [], 'Cards are resolving.')
+        player = _metadata(combat['player'])
+        for key in ('current_hp', 'max_hp', 'block', 'energy'):
+            _integer(player[key])
+        _require(player['current_hp'] > 0, 'Player is dead.')
+        player['powers'] = _powers(player['powers'])
+        player['orbs'] = _orbs(player['orbs'])
+        summary = dict(turn=_integer(combat['turn'], 1), player=player,
+                       hand=_cards(combat['hand'], True), enemies=_enemies(combat['monsters']),
+                       draw_order_known=False)
+        _require(len({c['uuid'] for c in summary['hand']}) == len(summary['hand']), 'Duplicate hand UUID.')
+        if 'turn_counters' in combat:
+            summary['turn_counters'] = deepcopy(combat['turn_counters'])
+        for pile in ('draw_pile', 'discard_pile', 'exhaust_pile'):
+            summary[pile] = sorted(_cards(combat.get(pile, [])), key=lambda c: c['uuid'])
+        summary['relics'] = [_metadata(r) for r in _list(game.get('relics', []))]
+        for relic in summary['relics']:
+            _string(relic['id'])
+            if 'counter' in relic:
+                _integer(relic['counter'], None)
+            relic['effect'] = 'unknown'
+        summary['potions'] = deepcopy(_list(game.get('potions', [])))
+        actions = []
+        if 'play' in commands:
+            for card in summary['hand']:
+                if not card['is_playable']:
+                    continue
+                for enemy in _live(summary['enemies']) if card['has_target'] else [None]:
+                    target = enemy['target_index'] if enemy else None
+                    if target is not None and 'valid_target_indices' in card and target not in card['valid_target_indices']:
+                        continue
+                    command = f"PLAY {card['play_index']}" + (f' {target}' if target is not None else '')
+                    actions.append(_action(command, f"{card['name']}: {card['effect']}", kind='play', hand_index=card['hand_index'], card_uuid=card['uuid'], target_index=target))
+        if 'end' in commands:
+            actions.append(_action('END', 'End turn', kind='end'))
+        actions.extend(potion_candidates(raw))
+        _require(bool(actions), 'No supported native candidates.')
+        return summary, actions
+    except (KeyError, TypeError, AttributeError, IndexError):
+        raise UnsupportedState('Malformed native combat state.') from None
+
+
+
+def load_catalog(game_jar: Path | None = None) -> dict:
+    result = {'cards': {}, 'powers': {}, 'relics': {}}
+    if game_jar is None:
+        return result
+    try:
+        with ZipFile(game_jar) as jar:
+            for kind in result:
+                try:
+                    value = json.loads(jar.read(f'localization/eng/{kind}.json').decode('utf-8-sig'))
+                    if isinstance(value, dict):
+                        result[kind] = {key: entry for key, entry in value.items() if isinstance(key, str) and isinstance(entry, dict)}
+                except (KeyError, UnicodeError, ValueError):
+                    pass
+    except (OSError, BadZipFile, TypeError):
+        pass
+    return result
+
+
+def enrich_summary(summary: dict, catalog: dict) -> dict:
+    """Recursively annotate identifiable metadata, keeping templates unresolved."""
+    result = deepcopy(summary)
+
+    def visit(value, category=None):
+        if isinstance(value, list):
+            for item in value:
+                visit(item, category)
+        elif isinstance(value, dict):
+            identifier = value.get('id')
+            if isinstance(identifier, str) and category in ('cards', 'powers', 'relics'):
+                entry = catalog.get(category, {}).get(identifier, {})
+                description = entry.get('UPGRADE_DESCRIPTION') if category == 'cards' and type(value.get('upgrades')) is int and value['upgrades'] > 0 else None
+                description = description or entry.get('DESCRIPTION') or entry.get('DESCRIPTIONS')
+                if isinstance(value.get('native_description'), str) and value['native_description']:
+                    description = value['native_description']
+                native = value.get('native_values')
+                if category == 'cards' and isinstance(native, dict) and native.get('source') == 'game_card_fields':
+                    if isinstance(value.get('raw_description'), str) and value['raw_description']:
+                        description = value['raw_description']
+                    if isinstance(description, str):
+                        for token, field in (('!D!', 'damage'), ('!B!', 'block'), ('!M!', 'magic_number')):
+                            number = native.get(field)
+                            if type(number) is int and number >= 0:
+                                description = description.replace(token, str(number))
+                    value['value_scope'] = 'game_card_fields_not_target_prediction'
+                if isinstance(description, list) and all(isinstance(s, str) for s in description):
+                    description = ' '.join(description)
+                value['description'] = description if isinstance(description, str) else 'unknown'
+                value['dynamic_values_unknown'] = bool(re.search(r'![^!]+!|%(?:\d+\$)?[-+ #0]*\d*(?:\.\d+)?[a-zA-Z]|\{\d+(?:[^}]*)\}', value['description']))
+            for key, child in list(value.items()):
+                kind = 'powers' if key == 'powers' else 'relics' if key in ('relics', 'relic') else 'cards' if key in ('hand', 'deck', 'cards', 'card', 'draw_pile', 'discard_pile', 'exhaust_pile', 'selected_cards') else category
+                visit(child, kind)
+    visit(result)
+    return result
+
+
+def prepare_state(raw):
+    return prepare_native_combat(raw)

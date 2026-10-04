@@ -37,7 +37,7 @@ def test_live_jev_uses_sdk_revalidates_state_and_never_falls_back(tmp_path, monk
         return httpx2.Response(200, json={
             'model': 'jev-test', 'answers': {'action': {
                 'type': 'choice', 'choice': 'invalid' if scenario == 'bad_choice' else 'play_2_0',
-                'confidence': 0.8, 'probabilities': {'play_2_0': 0.8},
+                'confidence': 0.8, 'probabilities': {key: 0.8 if key == 'play_2_0' else 0.2 / (len(requests[-1]['questions']['action']['criteria']) - 1) for key in requests[-1]['questions']['action']['criteria']},
             }}, 'usage': {'input_tokens': 10, 'output_tokens': 2},
         })
 

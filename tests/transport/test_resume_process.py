@@ -5,8 +5,8 @@ from collections import deque
 from pathlib import Path
 
 from slay_jev_spire.transport import communication_mod as transport
-from slay_jev_spire.run_control import handle_resume_request
-from slay_jev_spire.run_session import RunSession
+from slay_jev_spire.session import handle_resume_request
+from slay_jev_spire.session import RunSession
 
 
 class Input(io.StringIO):

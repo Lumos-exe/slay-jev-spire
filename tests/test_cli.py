@@ -31,7 +31,7 @@ raise SystemExit(main(sys.argv[1:]))
             cwd=ROOT, env=env, encoding="utf-8", capture_output=True,
         )
         assert result.returncode == 0, result.stderr
-        assert "PLAY 1 0" in result.stdout
+        assert "PLAN" in result.stdout
         assert "mock" in result.stdout
         assert str(log) in result.stdout
     records = [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines()]
@@ -40,7 +40,8 @@ raise SystemExit(main(sys.argv[1:]))
         assert record["raw_state"] == json.loads(SAMPLE.read_text(encoding="utf-8"))
         assert record["mode"] == "mock"
         assert record["decision"]["action"] in record["candidates"]
-        assert record["decision"]["action"]["command"] == "PLAY 1 0"
+        assert record["decision"]["action"]["command"] == "PLAN"
+        assert record['schema_version'] == 2 and record['search']['beam_width'] == 32
         assert "map" not in record["summary"]
         assert record["instructions"]
         assert record["decision"]["returned_model"] is None
@@ -50,6 +51,11 @@ def test_jev_missing_key_does_not_write_record(monkeypatch, tmp_path, capsys):
     from slay_jev_spire.cli import main
 
     monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
+    from slay_jev_spire import config
+    from slay_jev_spire.selectors import SelectionError
+    def no_key():
+        raise SelectionError('Missing TYPESAFE_API_KEY')
+    monkeypatch.setattr(config, 'load_jev_key', no_key)
     log = tmp_path / "missing.jsonl"
     assert main(["--mode", "jev", "--log", str(log)]) == 1
     assert "TYPESAFE_API_KEY" in capsys.readouterr().err

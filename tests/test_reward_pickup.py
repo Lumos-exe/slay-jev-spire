@@ -2,9 +2,9 @@ from copy import deepcopy
 import pytest
 
 from tests.test_journey import reward
-from slay_jev_spire.run_session import RunSession
+from slay_jev_spire.session import RunSession
 from slay_jev_spire.selectors import choose_mock
-from slay_jev_spire.decision_memory import gameplay_state
+from slay_jev_spire.session import gameplay_state
 
 
 def test_free_rewards_collected_before_leaving_without_model_requests(tmp_path):

@@ -1,4 +1,4 @@
-from slay_jev_spire.run_metrics import run_metrics
+from slay_jev_spire.records import run_metrics
 
 
 def event(status, step, **kw):

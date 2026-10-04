@@ -1,0 +1,99 @@
+{
+  "in_game": true,
+  "ready_for_command": true,
+  "available_commands": [
+    "play",
+    "end"
+  ],
+  "game_state": {
+    "seed": "quality-fixture",
+    "class_": "IRONCLAD",
+    "class": "IRONCLAD",
+    "act": 1,
+    "floor": 1,
+    "current_hp": 60,
+    "max_hp": 80,
+    "room_phase": "COMBAT",
+    "action_phase": "WAITING_ON_USER",
+    "screen_type": "NONE",
+    "is_screen_up": false,
+    "relics": [],
+    "potions": [],
+    "combat_state": {
+      "turn": 1,
+      "limbo": [],
+      "hand": [
+        {
+          "id": "Strike_R",
+          "uuid": "Strike_R",
+          "name": "Strike_R",
+          "type": "ATTACK",
+          "cost": 1,
+          "upgrades": 0,
+          "is_playable": true,
+          "has_target": true,
+          "exhausts": false,
+          "ethereal": false,
+          "native_values": {
+            "source": "game_card_fields",
+            "cost_for_turn": 1,
+            "base_damage": 6,
+            "damage": 6,
+            "base_block": 0,
+            "block": 0,
+            "magic_number": 0,
+            "base_magic_number": 0
+          }
+        },
+        {
+          "id": "Bash",
+          "uuid": "Bash",
+          "name": "Bash",
+          "type": "ATTACK",
+          "cost": 2,
+          "upgrades": 0,
+          "is_playable": true,
+          "has_target": true,
+          "exhausts": false,
+          "ethereal": false,
+          "native_values": {
+            "source": "game_card_fields",
+            "cost_for_turn": 2,
+            "base_damage": 8,
+            "damage": 8,
+            "base_block": 0,
+            "block": 0,
+            "magic_number": 2,
+            "base_magic_number": 2
+          }
+        }
+      ],
+      "draw_pile": [],
+      "discard_pile": [],
+      "exhaust_pile": [],
+      "player": {
+        "current_hp": 60,
+        "max_hp": 80,
+        "block": 0,
+        "energy": 3,
+        "powers": [],
+        "orbs": []
+      },
+      "monsters": [
+        {
+          "id": "Cultist",
+          "name": "Cultist",
+          "current_hp": 16,
+          "max_hp": 16,
+          "block": 0,
+          "powers": [],
+          "is_gone": false,
+          "half_dead": false,
+          "intent": "ATTACK",
+          "move_adjusted_damage": 12,
+          "move_hits": 1
+        }
+      ]
+    }
+  }
+}

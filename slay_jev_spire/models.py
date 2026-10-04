@@ -1,6 +1,6 @@
 """模块之间共享的数据契约；TypedDict 保持原有 JSON 字典格式。"""
 
-from typing import TypedDict
+from typing import TypedDict, NotRequired
 
 
 class Action(TypedDict):
@@ -21,6 +21,10 @@ class Decision(TypedDict):
     requested_model: str | None
     returned_model: str | None
     confidence: float | None
+    probabilities: NotRequired[dict[str, float] | None]
+    usage: NotRequired[dict]
+    latency_ms: NotRequired[float]
+    choice_margin: NotRequired[float | None]
 
 
 class DecisionRecord(TypedDict):
@@ -33,3 +37,4 @@ class DecisionRecord(TypedDict):
     instructions: str
     candidates: list[Action]
     decision: Decision
+    schema_version: NotRequired[int]

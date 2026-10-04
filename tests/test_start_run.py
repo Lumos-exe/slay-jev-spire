@@ -1,4 +1,4 @@
-from slay_jev_spire.run_session import RunSession
+from slay_jev_spire.session import RunSession
 
 
 def test_new_run_is_explicit_refreshes_and_sends_once(tmp_path):

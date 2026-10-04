@@ -1,214 +1,172 @@
-"""Conservative proof of a lethal basic-card sequence, not a general simulator."""
-from itertools import combinations
+"""Bounded whole-turn beam search with explicit information boundaries."""
 from copy import deepcopy
-from math import floor
+from dataclasses import dataclass
+from hashlib import sha256
+import json
+import time
+from . import rules
 
+@dataclass(frozen=True)
+class SearchConfig:
+    beam_width: int = 32
+    max_nodes: int = 8000
+    max_depth: int = 24
+    max_ms: int = 500
+
+    def __post_init__(self):
+        if any(type(x) is not int or x < 1 for x in (self.beam_width, self.max_nodes, self.max_depth, self.max_ms)):
+            raise ValueError('Search budgets must be positive integers.')
+        if self.beam_width > 128:
+            raise ValueError('Beam width must not exceed 128.')
+
+def projection(state, counters=False):
+    def card(c):
+        return {k: c.get(k) for k in ('uuid', 'id', 'cost', 'upgrades', 'base_damage', 'base_block', 'magic_number')}
+    result = {k: deepcopy(state[k]) for k in ('turn', 'energy', 'hp', 'max_hp', 'block', 'relics')}
+    result['powers'] = {k: v for k, v in state['powers'].items() if v != 0}
+    result['combust_hp_loss'] = state['combust_hp_loss']
+    for pile in ('hand', 'draw_pile', 'discard_pile', 'exhaust_pile'):
+        result[pile] = sorted([card(c) for c in state[pile]], key=lambda c: str(c['uuid']))
+    result['enemies'] = [{k: deepcopy(e[k]) for k in ('id', 'hp', 'block', 'intent', 'damage', 'hits')} |
+                         {'powers': {k: v for k, v in e['powers'].items() if v != 0} if e['hp'] > 0 else {}}
+                         for e in state['enemies']]
+    if counters:
+        result['turn_counters'] = {k: state[k] for k in ('plays', 'attacks', 'skills')}
+    return result
 
 def battle_projection(summary):
-    def powers(values):
-        return {p['id']: p['amount'] for p in values}
-    return {'turn': summary.get('turn'), 'energy': summary.get('player', {}).get('energy'),
-            'hp': summary.get('player', {}).get('current_hp'), 'block': summary.get('player', {}).get('block'),
-            'player_powers': powers(summary.get('player', {}).get('powers', [])),
-            'hand': sorted(c['uuid'] for c in summary.get('hand', [])),
-            'hand_rules': {c['uuid']: {'id': c['id'], 'native': {k: c.get('native_values', {}).get(k) for k in ('cost_for_turn', 'base_damage', 'block', 'magic_number')}} for c in summary.get('hand', [])},
-            'relics': [{'id': r['id'], 'counter': r.get('counter')} for r in summary.get('relics', [])],
-            'enemies': [{'id': e['id'], 'hp': e['current_hp'], 'block': e['block'], 'powers': powers(e.get('powers', [])) if e['current_hp'] > 0 else {},
-                         'intent': e.get('intent'), 'intent_damage': e.get('move_adjusted_damage'), 'intent_hits': e.get('move_hits')}
-                        for e in summary.get('enemies', [])]}
+    return projection(rules.initial(summary), 'turn_counters' in summary)
 
+def fingerprint(value):
+    return sha256(json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest()
 
-def turn_plans(summary, actions):
-    """Bounded basic-card turn search. Unknown rules return the atomic path."""
-    enemies = summary.get('enemies', [])
-    supported = {'Cultist', 'JawWorm', 'Looter', 'Mugger', 'AcidSlime_S', 'AcidSlime_M',
-                 'SpikeSlime_S', 'SpikeSlime_M', 'FuzzyLouseNormal', 'FuzzyLouseDefensive'}
-    live = [e for e in enemies if e['current_hp'] > 0]
-    if not live or len(enemies) > 5 or any(e.get('id') not in supported for e in live):
-        return None
-    if any(e.get('is_gone') or e.get('half_dead') for e in live):
-        return None
-    player = summary['player']
-    if any(p['id'] not in {'Strength', 'Dexterity', 'Weak', 'Frail', 'Vulnerable', 'Rage', 'Plated Armor'} for p in player.get('powers', [])):
-        return None
-    if any(p['id'] not in {'Strength', 'Weak', 'Vulnerable', 'Ritual', 'Thievery', 'Curl Up'} for e in live for p in e.get('powers', [])):
-        return None
-    if any(r.get('id') != 'Burning Blood' for r in summary.get('relics', [])):
-        return None
-    hand = summary.get('hand', [])
-    if not hand or len(hand) > 10 or len({c['uuid'] for c in hand}) != len(hand):
-        return None
-    if any(c['id'] not in {'Strike_R', 'Defend_R', 'Bash', 'Rage'} or c.get('exhausts') or c.get('ethereal') for c in hand):
-        return None
-    incoming = {}
-    for enemy in live:
-        intent = enemy['intent']
-        if intent.startswith('ATTACK'):
-            damage, hits = enemy.get('move_adjusted_damage'), enemy.get('move_hits')
-            if type(damage) is not int or damage < 0 or type(hits) is not int or hits < 1:
-                return None
-            incoming[enemy['target_index']] = damage * hits
-        elif intent in {'BUFF', 'DEFEND', 'DEFEND_BUFF', 'SLEEP', 'DEBUFF', 'STRONG_DEBUFF', 'ESCAPE'}:
-            incoming[enemy['target_index']] = 0
-        else:
-            return None
-    current = battle_projection(summary)
-    pp = current['player_powers']
-    strength = pp.get('Strength', 0)
-    weak = 0.75 if pp.get('Weak', 0) > 0 else 1
-    usable = {}
-    for card in hand:
-        native = card.get('native_values', {})
-        if native.get('source') != 'game_card_fields' or type(native.get('cost_for_turn')) is not int or native['cost_for_turn'] < 0:
-            return None
-        if card['id'] == 'Defend_R':
-            if type(native.get('block')) is not int or native['block'] < 0:
-                return None
-        elif card['id'] == 'Rage':
-            if type(native.get('magic_number')) is not int or native['magic_number'] < 0:
-                return None
-        else:
-            if type(native.get('base_damage')) is not int or native['base_damage'] < 0:
-                return None
-            for enemy in live:
-                preview = next((p for p in card.get('target_damage_previews', []) if p.get('target_index') == enemy['target_index'] and p.get('source') == 'game_calculateCardDamage'), None)
-                expected = floor(max(0, native['base_damage'] + strength) * weak * (1.5 if current['enemies'][enemy['target_index']]['powers'].get('Vulnerable', 0) > 0 else 1))
-                if not preview or preview.get('damage_before_block') != expected:
-                    return None
-            if card['id'] == 'Bash' and (type(native.get('magic_number')) is not int or native['magic_number'] < 0):
-                return None
-        if card['is_playable']:
-            usable[card['uuid']] = card
-    if not any(a['command'] == 'END' for a in actions):
-        return None
-    terminal = []
-    visited = set()
-    nodes = 0
+def _quality(node):
+    state, steps, out = node
+    loss = out['incoming_hp_loss'] if out['incoming_hp_loss'] is not None else state['hp']
+    hp = state['hp'] - loss
+    setup = sum(max(0, v) for k, v in state['powers'].items() if k in {
+        'Strength', 'Dexterity', 'Feel No Pain', 'Dark Embrace', 'Corruption', 'Barricade',
+        'Demon Form', 'Metallicize', 'Rage', 'Juggernaut', 'Double Tap', 'Berserk'})
+    setup += 3 * out['draw_count'] + 2 * out['generated_cards']
+    kill = int(out['combat_won'])
+    primary = (kill, hp > 0, -out['enemy_hp'] - 2.5 * loss + 2 * setup - state['hp_spent'])
+    return [primary + (-len(steps),), (kill, hp, -out['enemy_hp'], setup),
+            (kill, -out['enemy_hp'], hp, setup), (kill, setup, hp, -out['enemy_hp'])]
 
-    def search(state, steps):
-        nonlocal nodes
-        nodes += 1
-        if nodes > 2000:
-            return
-        key = repr(state)
-        if key in visited:
-            return
-        visited.add(key)
-        won = all(e['hp'] <= 0 for e in state['enemies'])
-        ending = steps if won else steps + [{'kind': 'end', 'expected_before': deepcopy(state)}]
-        hp = [max(0, e['hp']) for e in state['enemies']]
-        danger = sum(incoming.get(i, 0) for i, e in enumerate(state['enemies']) if e['hp'] > 0)
-        terminal.append({'steps': ending, 'vulnerability': tuple(e['powers'].get('Vulnerable', 0) for e in state['enemies']),
-            'outcome': {'enemy_hp': sum(hp), 'enemy_hp_by_target': hp,
-            'incoming_hp_loss': 0 if won else max(0, danger - state['block'] - max(0, pp.get('Plated Armor', 0))),
-            'remaining_energy': state['energy'], 'block': state['block'], 'combat_won': won}})
-        if won:
-            return
-        for uuid in state['hand']:
-            card = usable.get(uuid)
-            if not card:
+def _diverse(nodes, width):
+    if len(nodes) <= width:
+        return sorted(nodes, key=lambda n: _quality(n)[0], reverse=True)
+    rankings = [sorted(range(len(nodes)), key=lambda i: _quality(nodes[i])[k], reverse=True) for k in range(4)]
+    selected = []; seen = set()
+    for rank in range(len(nodes)):
+        for order in rankings:
+            index = order[rank]
+            if index not in seen:
+                selected.append(nodes[index]); seen.add(index)
+                if len(selected) == width: return selected
+    return selected
+
+def generate_plans(summary, actions, config=None):
+    config = config or SearchConfig()
+    started = time.monotonic()
+    stats = dict(rule_version=rules.VERSION, beam_width=config.beam_width, expanded=0,
+                 deduplicated=0, depth=0, truncated=[], complete_enumeration=False)
+    if 'player' not in summary:
+        return [], stats
+    root = rules.initial(summary)
+    use_counters = 'turn_counters' in summary
+    root_legal = {(a.get('card_uuid'), a.get('target_index')) for a in actions if a.get('kind') == 'play'}
+    beam = [(root, [], rules.outcome(root))]
+    terminal = {}; visited = set()
+    for depth in range(config.max_depth + 1):
+        stats['depth'] = depth
+        children = []
+        for state, steps, out in beam:
+            if steps or any(a['command'] == 'END' for a in actions):
+                end_steps = steps if state['checkpoint'] or not rules.live(state) else steps + [dict(kind='end', expected_before=projection(state, use_counters))]
+                key = fingerprint([projection(state, True), state['checkpoint'], state['uncertainties'], steps[-1].get('selection_uuid') if steps else None])
+                if key not in terminal or len(end_steps) < len(terminal[key][1]):
+                    terminal[key] = (state, end_steps, out)
+            if depth == config.max_depth:
+                if rules.legal_steps(state): stats['truncated'].append('depth_budget')
                 continue
-            native = card['native_values']; cost = native['cost_for_turn']
-            if cost > state['energy']:
-                continue
-            targets = [i for i, e in enumerate(state['enemies']) if e['hp'] > 0] if card['has_target'] else [None]
-            for index in targets:
-                after = deepcopy(state); after['energy'] -= cost; after['hand'].remove(uuid); after['hand_rules'].pop(uuid)
-                if card['id'] == 'Defend_R':
-                    after['block'] += native['block']
-                elif card['id'] == 'Rage':
-                    after['player_powers']['Rage'] = after['player_powers'].get('Rage', 0) + native['magic_number']
-                else:
-                    target = after['enemies'][index]
-                    after['block'] += max(0, after['player_powers'].get('Rage', 0))
-                    damage = floor(max(0, native['base_damage'] + strength) * weak * (1.5 if target['powers'].get('Vulnerable', 0) > 0 else 1))
-                    absorbed = min(target['block'], damage); target['block'] -= absorbed
-                    hp_loss = damage - absorbed; target['hp'] = max(0, target['hp'] - hp_loss)
-                    if target['hp'] <= 0:
-                        target['powers'] = {}
-                    else:
-                        if hp_loss > 0:
-                            target['block'] += target['powers'].pop('Curl Up', 0)
-                        if card['id'] == 'Bash':
-                            target['powers']['Vulnerable'] = target['powers'].get('Vulnerable', 0) + native['magic_number']
-                step = {'kind': 'play', 'card_uuid': uuid, 'target_index': index,
-                        'expected_before': deepcopy(state)}
-                search(after, steps + [step])
+            for step in rules.legal_steps(state):
+                if depth == 0 and (step['card_uuid'], step['target_index']) not in root_legal: continue
+                if stats['expanded'] >= config.max_nodes:
+                    stats['truncated'].append('node_budget'); break
+                if (time.monotonic() - started) * 1000 >= config.max_ms:
+                    stats['truncated'].append('time_budget'); break
+                child = rules.play(state, step)
+                stats['expanded'] += 1
+                bound = dict(step, expected_before=projection(state, use_counters))
+                card = next(c for c in state['hand'] if c['uuid'] == step['card_uuid'])
+                bound.update(card_id=card['id'], card_name=card.get('name', card['id']), checkpoint=child['checkpoint'])
+                key = fingerprint([projection(child, True), child['known_top'], child['checkpoint'], step.get('selection_uuid')])
+                if key in visited:
+                    stats['deduplicated'] += 1; continue
+                visited.add(key)
+                children.append((child, steps + [bound], rules.outcome(child)))
+            if 'node_budget' in stats['truncated'] or 'time_budget' in stats['truncated']: break
+        for state, steps, out in children:
+            ending = steps if state['checkpoint'] or not rules.live(state) else steps + [dict(kind='end', expected_before=projection(state, use_counters))]
+            terminal.setdefault(fingerprint([projection(state, True), state['checkpoint'], steps[-1].get('selection_uuid')]), (state, ending, out))
+        if stats['truncated'] or not children: break
+        beam = _diverse(children, config.beam_width)
+        if len(children) > config.beam_width: stats['beam_pruned'] = stats.get('beam_pruned', 0) + len(children) - config.beam_width
+    nodes = list(terminal.values())
+    lethal = [n for n in nodes if n[2]['combat_won']]
+    if lethal:
+        safest = max(n[0]['hp'] for n in lethal)
+        nodes = [n for n in nodes if n[2]['combat_won'] or n[0]['hp'] > safest or n[2]['forecast_scope'] != 'deterministic']
+    unique_nodes = {}
+    for node in nodes:
+        state, steps, out = node
+        key = fingerprint([{k: v for k, v in s.items() if k != 'expected_before'} for s in steps])
+        unique_nodes.setdefault(key, node)
+    plans = []
+    for state, steps, out in _diverse(list(unique_nodes.values()), config.beam_width):
+        sequence = [{k: s[k] for k in ('kind', 'card_id', 'card_uuid', 'card_name', 'target_index', 'selection_uuid') if k in s} for s in steps]
+        plan_id = 'plan_' + fingerprint(sequence)[:12]
+        description = ' -> '.join('END' if s['kind'] == 'end' else s['card_name'] + (f' -> enemy {s["target_index"]}' if s.get('target_index') is not None else '') for s in sequence)
+        plans.append(dict(id=plan_id, kind='turn_plan', command='PLAN', hand_index=None,
+                          card_uuid=None, target_index=None, steps=steps, sequence=sequence,
+                          description=description, outcome=out, checkpoint=state['checkpoint'],
+                          uncertainties=state['uncertainties'], notes=state['notes']))
+    stats['truncated'] = sorted(set(stats['truncated']))
+    stats['elapsed_ms'] = round((time.monotonic() - started) * 1000, 2)
+    stats['candidates'] = len(plans)
+    stats['complete_enumeration'] = not stats['truncated'] and not stats.get('beam_pruned')
+    return plans, stats
 
-    search(current, [])
-    # Discard plans worse in both damage and immediate health loss. Identical
-    # outcomes keep the shorter sequence; retain real offense/defense tradeoffs.
-    terminal.sort(key=lambda p: len(p['steps']))
-    unique = {}
-    for p in terminal:
-        o = p['outcome']; key = (tuple(o['enemy_hp_by_target']), o['incoming_hp_loss'], p['vulnerability'])
-        unique.setdefault(key, p)
-    frontier = []
-    for key, plan in unique.items():
-        if any(all(a <= b for a, b in zip(other[0], key[0])) and other[1] <= key[1]
-               and all(a >= b for a, b in zip(other[2], key[2])) and other != key for other in unique):
-            continue
-        sequence = ['END' if step['kind'] == 'end' else f"{usable[step['card_uuid']]['id']}({step['card_uuid']})" for step in plan['steps']]
-        frontier.append({'id': f'turn_plan_{len(frontier)}', 'kind': 'turn_plan', 'command': 'PLAN',
-            'hand_index': None, 'card_uuid': None, 'target_index': None, **plan,
-            'description': f"Whole turn: {' -> '.join(sequence)}; verified basic-card outcome {plan['outcome']}. Future draw order unknown."})
-    return frontier or None
-
+def turn_plans(summary, actions, config=None):
+    return generate_plans(summary, actions, config)[0]
 
 def bind_plan_step(step, summary, actions):
-    if battle_projection(summary) != step['expected_before']:
+    observed = battle_projection(summary)
+    expected = step['expected_before']
+    bindings = {}
+    real_ids = {c['uuid'] for pile in ('hand','draw_pile','discard_pile','exhaust_pile') for c in expected[pile] if not c['uuid'].startswith('@generated:')}
+    for pile in ('hand','draw_pile','discard_pile','exhaust_pile'):
+        for symbolic in expected[pile]:
+            if not symbolic['uuid'].startswith('@generated:'): continue
+            actual = next((c for c in observed[pile] if c['uuid'] not in real_ids and c['uuid'] not in bindings
+                           and {k:v for k,v in c.items() if k!='uuid'} == {k:v for k,v in symbolic.items() if k!='uuid'}), None)
+            if actual is None: return None
+            bindings[actual['uuid']] = symbolic['uuid']
+    for pile in ('hand','draw_pile','discard_pile','exhaust_pile'):
+        for card in observed[pile]: card['uuid'] = bindings.get(card['uuid'], card['uuid'])
+        observed[pile].sort(key=lambda c:c['uuid'])
+    if observed != expected:
         return None
-    return next((a for a in actions if a.get('kind') == step['kind']
-                 and (step['kind'] == 'end' or (a.get('card_uuid') == step['card_uuid'] and a.get('target_index') == step['target_index']))), None)
-
+    action = next((a for a in actions if a.get('kind') == step['kind'] and
+                 (step['kind'] == 'end' or (bindings.get(a.get('card_uuid'), a.get('card_uuid')) == step['card_uuid'] and a.get('target_index') == step.get('target_index')))), None)
+    if action and step.get('selection_uuid'):
+        inverse = {v:k for k,v in bindings.items()}
+        return dict(action, planned_selection_uuid=inverse.get(step['selection_uuid'], step['selection_uuid']))
+    return action
 
 def proven_lethal_plan(summary, actions):
-    enemies = summary.get('enemies', [])
-    if len(enemies) != 1:
-        return None
-    enemy = enemies[0]
-    # Only the audited Cultist transition is supported until other creatures'
-    # damage/death callbacks are verified; a missing power list is not proof.
-    if enemy.get('id') != 'Cultist':
-        return None
-    if enemy.get('is_gone') or enemy.get('half_dead') or enemy.get('current_hp', 0) <= 0:
-        return None
-    harmless_enemy = {'Strength', 'Weak', 'Frail', 'Vulnerable', 'Ritual'}
-    harmless_player = {'Strength', 'Dexterity', 'Weak', 'Frail', 'Vulnerable'}
-    if any(p.get('id') not in harmless_enemy for p in enemy.get('powers', [])):
-        return None
-    if any(p.get('id') not in harmless_player for p in summary.get('player', {}).get('powers', [])):
-        return None
-    if any(r.get('id') != 'Burning Blood' for r in summary.get('relics', [])):
-        return None
-    hand = summary.get('hand', [])
-    if len({c.get('uuid') for c in hand}) != len(hand):
-        return None
-    if len(hand) > 10 or any(c.get('id') not in {'Strike_R', 'Defend_R', 'Bash'} for c in hand):
-        return None
-    energy = summary.get('player', {}).get('energy', 0)
-    candidates = []
-    for card in hand:
-        if card.get('id') not in {'Strike_R', 'Bash'} or not card.get('is_playable'):
-            continue
-        action = next((a for a in actions if a.get('kind') == 'play'
-                       and a.get('card_uuid') == card.get('uuid')
-                       and a.get('target_index') == enemy.get('target_index')), None)
-        native = card.get('native_values', {})
-        cost = native.get('cost_for_turn')
-        preview = next((p for p in card.get('target_damage_previews', [])
-                        if p.get('target_index') == enemy.get('target_index')
-                        and p.get('source') == 'game_calculateCardDamage'), None)
-        damage = preview.get('damage_before_block') if preview else None
-        if action and native.get('source') == 'game_card_fields' and type(cost) is int and cost >= 0 and type(damage) is int and damage > 0:
-            candidates.append((action, cost, damage))
-    # Current previews already include current Weak/Strength/Vulnerable. Bash may
-    # increase later damage; ignoring that increase is a conservative lower bound.
-    required = enemy['current_hp'] + enemy['block']
-    for count in range(1, len(candidates) + 1):
-        winning = [group for group in combinations(candidates, count)
-                   if sum(x[1] for x in group) <= energy and sum(x[2] for x in group) >= required]
-        if winning:
-            group = min(winning, key=lambda group: sum(x[1] for x in group))
-            return [x[0] for x in group]
+    for plan in turn_plans(summary, actions):
+        if plan['outcome']['combat_won']:
+            return [a for step in plan['steps'] if (a := bind_plan_step(step, summary, actions))]
     return None

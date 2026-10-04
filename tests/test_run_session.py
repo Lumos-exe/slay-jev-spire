@@ -25,7 +25,7 @@ def test_main_menu_wait_still_honors_pause(tmp_path):
 
 
 def session(path,**kw):
-    from slay_jev_spire.run_session import RunSession
+    from slay_jev_spire.session import RunSession
     return RunSession(path,mode='mock',**kw)
 
 
@@ -87,7 +87,7 @@ def test_transition_timeout_and_pause_inside_selector(tmp_path):
     assert s.receive(choice)==[] and s.reason=='paused' and s.actions==0
 
 def test_missing_combat_hand_does_not_confirm_and_game_over_preserved(tmp_path):
-    from slay_jev_spire.run_session import confirmation
+    from slay_jev_spire.session import confirmation
     r=json.loads(Path('samples/communication_mod_combat.json').read_text(encoding='utf-8'))
     after=copy.deepcopy(r); del after['game_state']['combat_state']['hand']
     action={'command':'PLAY 1 0','card_uuid':r['game_state']['combat_state']['hand'][0]['uuid']}
@@ -126,7 +126,7 @@ def test_rewards_to_cards_to_map_to_supported_combat(tmp_path):
 
 
 def test_card_gain_bowl_end_and_potion_evidence():
-    from slay_jev_spire.run_session import confirmation
+    from slay_jev_spire.session import confirmation
     r=reward(); after=copy.deepcopy(r); g=after['game_state']
     action={'command':'CHOOSE 1','kind':'reward','choice_index':1,'reward':r['game_state']['screen_state']['rewards'][1]}
     g['screen_state']['rewards'].pop(1); g['potions'][0]=action['reward']['potion']

@@ -4,8 +4,8 @@ from slay_jev_spire.selectors import choose_mock
 
 
 def test_resume_preserves_run_steps_and_adds_bounded_budget(tmp_path):
-    from slay_jev_spire.run_session import RunSession
-    from slay_jev_spire.run_control import resume_session
+    from slay_jev_spire.session import RunSession
+    from slay_jev_spire.session import resume_session
     old = RunSession(tmp_path, mode='mock', selector=choose_mock)
     old.calls, old.actions, old.step_id = 9, 9, 9
     old.run_identity = (123, 'IRONCLAD', 0)
@@ -20,8 +20,8 @@ def test_resume_preserves_run_steps_and_adds_bounded_budget(tmp_path):
 
 def test_active_or_finished_session_cannot_resume(tmp_path):
     import pytest
-    from slay_jev_spire.run_session import RunSession
-    from slay_jev_spire.run_control import resume_session
+    from slay_jev_spire.session import RunSession
+    from slay_jev_spire.session import resume_session
     old = RunSession(tmp_path, mode='mock')
     with pytest.raises(ValueError):
         resume_session(old, 20)
@@ -31,8 +31,8 @@ def test_active_or_finished_session_cannot_resume(tmp_path):
 
 
 def test_resume_request_pauses_active_run_before_reload(tmp_path):
-    from slay_jev_spire.run_session import RunSession
-    from slay_jev_spire.run_control import handle_resume_request
+    from slay_jev_spire.session import RunSession
+    from slay_jev_spire.session import handle_resume_request
     old = RunSession(tmp_path, mode='mock')
     (tmp_path / 'pause.flag').write_text('pause')
     (tmp_path / 'resume.flag').write_text('resume')
@@ -46,8 +46,8 @@ def test_resume_request_pauses_active_run_before_reload(tmp_path):
 def test_resume_waits_for_outstanding_action_evidence(tmp_path):
     import copy
     import json
-    from slay_jev_spire.run_session import RunSession
-    from slay_jev_spire.run_control import handle_resume_request
+    from slay_jev_spire.session import RunSession
+    from slay_jev_spire.session import handle_resume_request
     raw = json.loads(Path('samples/communication_mod_rewards.json').read_text(encoding='utf-8'))
     old = RunSession(tmp_path, mode='mock')
     old.receive(raw)
@@ -71,8 +71,8 @@ def test_resume_waits_for_outstanding_action_evidence(tmp_path):
 
 def test_resume_can_reconcile_start_before_identity_was_adopted(tmp_path):
     import json
-    from slay_jev_spire.run_session import RunSession
-    from slay_jev_spire.run_control import handle_resume_request
+    from slay_jev_spire.session import RunSession
+    from slay_jev_spire.session import handle_resume_request
     menu = {'in_game': False, 'ready_for_command': True, 'available_commands': ['start', 'state']}
     old = RunSession(tmp_path, mode='mock', start_new=True)
     old.receive(menu)

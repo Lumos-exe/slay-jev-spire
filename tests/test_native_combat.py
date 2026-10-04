@@ -1,7 +1,7 @@
 import copy
 
 import pytest
-from slay_jev_spire.native_combat import prepare_native_combat, potion_candidates
+from slay_jev_spire.state import prepare_native_combat, potion_candidates
 from slay_jev_spire.state import UnsupportedState
 
 

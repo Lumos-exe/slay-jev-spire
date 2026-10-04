@@ -1,6 +1,6 @@
 import pytest
 
-from slay_jev_spire.run_report import render_run_report
+from slay_jev_spire.records import render_run_report
 
 
 def state(hp, gold=10, screen='COMBAT_REWARD'):

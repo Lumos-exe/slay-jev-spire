@@ -1,7 +1,7 @@
 import json
 from zipfile import ZipFile
 
-from slay_jev_spire.catalog import load_catalog, enrich_summary
+from slay_jev_spire.state import load_catalog, enrich_summary
 
 
 def test_optional_catalog_and_pure_unknown_enrichment(tmp_path):
@@ -34,7 +34,7 @@ def test_all_dynamic_templates_stay_unknown():
         assert result['powers'][0]['description'] == template
         assert result['powers'][0]['dynamic_values_unknown'] is True
 def test_native_values_resolve_only_verified_template_fields():
-    from slay_jev_spire.catalog import enrich_summary
+    from slay_jev_spire.state import enrich_summary
     summary = {'hand': [{'id': 'Flame Barrier', 'upgrades': 0,
                           'native_values': {'block': 12, 'magic_number': 4, 'damage': -1,
                                             'source': 'game_card_fields'},
@@ -47,7 +47,7 @@ def test_native_values_resolve_only_verified_template_fields():
 
 
 def test_negative_or_unverified_native_numbers_stay_unknown():
-    from slay_jev_spire.catalog import enrich_summary
+    from slay_jev_spire.state import enrich_summary
     catalog = {'cards': {'Test': {'DESCRIPTION': 'Deal !D! damage.'}}}
     for native in ({'damage': 50}, {'source': 'game_card_fields', 'damage': -1},
                    {'source': 'game_card_fields', 'damage': True}):
@@ -56,7 +56,7 @@ def test_negative_or_unverified_native_numbers_stay_unknown():
 
 
 def test_native_power_and_relic_descriptions_are_not_replaced_by_templates():
-    from slay_jev_spire.catalog import enrich_summary
+    from slay_jev_spire.state import enrich_summary
     summary = {'player': {'powers': [{'id': 'Strength', 'amount': -2, 'native_description': 'Attacks deal 2 less damage.'}]},
                'relics': [{'id': 'Pen Nib', 'counter': 9, 'native_description': 'Next attack deals double damage.'}]}
     result = enrich_summary(summary, {'powers': {'Strength': {'DESCRIPTIONS': ['Attacks deal %d damage.']}}})

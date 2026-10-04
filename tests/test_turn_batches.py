@@ -2,8 +2,8 @@ from copy import deepcopy
 import pytest
 
 from tests.test_lethal_plan import combat
-from slay_jev_spire.journey import prepare_journey
-from slay_jev_spire.run_session import RunSession
+from slay_jev_spire.screens import prepare_journey
+from slay_jev_spire.session import RunSession
 from slay_jev_spire.selectors import choose_mock
 
 
@@ -43,7 +43,7 @@ def test_one_selector_call_executes_three_attacks_and_end_with_rebound_indices(t
         s.command_sent('PLAY 1 0')
         raw = deepcopy(raw)
         c = raw['game_state']['combat_state']
-        c['hand'].pop(0); c['player']['energy'] -= 1; c['monsters'][0]['current_hp'] -= 6
+        c['discard_pile'].append(c['hand'].pop(0)); c['player']['energy'] -= 1; c['monsters'][0]['current_hp'] -= 6
         for card in c['hand']: card['is_playable'] = c['player']['energy'] >= card['cost']
     assert s.receive(raw) == ['STATE']
     assert s.receive(raw) == ['END']
@@ -75,11 +75,13 @@ def test_bash_then_strike_kill_is_locally_proven_using_vulnerability():
     assert any(p['outcome']['combat_won'] and [s.get('card_uuid') for s in p['steps']] == ['bash', 'strike-0'] for p in plans)
 
 
-def test_unknown_reactive_effect_uses_atomic_path():
+def test_thorns_is_included_in_plan_damage():
     from slay_jev_spire.turn_planner import turn_plans
     raw = battle()
     raw['game_state']['combat_state']['monsters'][0]['powers'] = [{'id': 'Thorns', 'name': 'Thorns', 'amount': 3}]
-    assert turn_plans(*prepare_journey(raw)) is None
+    plans = turn_plans(*prepare_journey(raw))
+    assert plans and all(p['kind'] == 'turn_plan' for p in plans)
+    assert any(p['outcome']['self_damage'] == 9 for p in plans)
 
 
 def test_cost_or_intent_change_invalidates_next_planned_step():
@@ -95,16 +97,16 @@ def test_cost_or_intent_change_invalidates_next_planned_step():
     assert bind_plan_step(step, *prepare_journey(changed)) is None
 
 
-def test_looter_one_hp_with_plated_armor_is_killed_without_model(tmp_path):
+def test_looter_one_hp_is_presented_to_judge_as_lethal_plan(tmp_path):
     raw = battle(); c = raw['game_state']['combat_state']
     c['monsters'][0].update(id='Looter', current_hp=1, powers=[{'id': 'Thievery', 'name': 'Thievery', 'amount': 15}])
     c['player']['powers'] = [{'id': 'Plated Armor', 'name': 'Plated Armor', 'amount': 3}]
     c['player']['energy'] = 1
     for card in c['hand']: card['is_playable'] = True
-    s = RunSession(tmp_path, mode='mock', selector=lambda *args: pytest.fail('Proven lethal must not call the model'))
+    s = RunSession(tmp_path, mode='mock')
     assert s.receive(raw) == ['STATE']
     assert s.receive(raw)[0].startswith('PLAY 1 0')
-    assert s.calls == 0
+    assert s.calls == 1
 
 
 def test_multiple_slimes_plan_targets_survivor_and_preserves_native_indices():
@@ -136,7 +138,7 @@ def test_rage_before_attacks_generates_block_in_whole_turn():
     from slay_jev_spire.turn_planner import turn_plans
     raw = battle(); c = raw['game_state']['combat_state']
     rage = deepcopy(c['hand'][-1]); rage.update(id='Rage', uuid='rage', cost=0)
-    rage['native_values'].update(cost_for_turn=0, block=0, magic_number=3, base_magic_number=3)
+    rage['native_values'].update(cost_for_turn=0, base_block=-1, block=0, magic_number=3, base_magic_number=3)
     c['hand'].append(rage)
     plans = turn_plans(*prepare_journey(raw))
     assert plans and any(p['outcome']['enemy_hp'] == 22 and p['outcome']['incoming_hp_loss'] == 3 for p in plans)

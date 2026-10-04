@@ -14,8 +14,9 @@ from ..config import load_jev_key
 from ..selectors import INSTRUCTIONS, SelectionError, choose_jev, choose_mock
 from ..state import UnsupportedState, prepare_state
 from ..session import CombatSession
-from ..run_session import RunSession
-from ..run_control import handle_resume_request
+from ..session import RunSession
+from ..session import handle_resume_request
+from ..turn_planner import SearchConfig
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -90,12 +91,14 @@ def main(argv: list[str] | None = None) -> int:
     mode_group.add_argument('--run', choices=('mock', 'jev'), help='跨支持战斗、奖励与地图的有界执行')
     parser.add_argument('--start-new', action='store_true', help='明确开始铁甲战士 A0 新局，仅配合 --run')
     parser.add_argument('--max-decisions', type=int, default=None, help='API 请求预算：整局默认 500，单场默认 20')
+    parser.add_argument('--beam-width', type=int, default=32)
+    parser.add_argument('--seed', help='新局固定种子')
     args = parser.parse_args(argv)
-    if args.start_new and not args.run:
-        parser.error('--start-new 必须配合 --run')
+    if args.start_new and not (args.run or args.combat):
+        parser.error('--start-new 必须配合 --run 或 --combat')
     if args.max_decisions is None:
         args.max_decisions = 500 if args.run else 20
-    maximum = 2000 if args.run else 50
+    maximum = 2000
     if not 1 <= args.max_decisions <= maximum:
         parser.error(f'--max-decisions 必须为 1–{maximum}')
     sys.stdin.reconfigure(encoding=args.input_encoding, errors='strict')
@@ -108,16 +111,16 @@ def main(argv: list[str] | None = None) -> int:
         args.output_dir.mkdir(parents=True, exist_ok=True)
         session = None
         if args.run:
-            session = RunSession(args.output_dir, args.run, args.max_decisions, start_new=args.start_new)
+            session = RunSession(args.output_dir, args.run, args.max_decisions, start_new=args.start_new, seed=args.seed, search_config=SearchConfig(beam_width=args.beam_width))
         elif args.combat:
-            session = CombatSession(args.output_dir, args.combat, args.max_decisions)
+            session = RunSession(args.output_dir, args.combat, args.max_decisions, start_new=args.start_new, seed=args.seed, stop_after_combat=True, search_config=SearchConfig(beam_width=args.beam_width))
         # 在握手前验证输出权限；状态日志采用追加方式保留历次采集。
         with (args.output_dir / 'states.jsonl').open('a', encoding='utf-8') as stream:
             print('ready', flush=True)
             print('STATE', flush=True)
             messages = _input_messages() if session else sys.stdin
             for line in messages:
-                if args.run:
+                if args.run or args.combat:
                     try:
                         session, resumed = handle_resume_request(session, args.max_decisions)
                     except Exception:
