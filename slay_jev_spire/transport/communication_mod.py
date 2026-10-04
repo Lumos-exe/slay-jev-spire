@@ -74,6 +74,19 @@ def _input_messages():
     return _InputMessages()
 
 
+def _publish_snapshot(output_dir, snapshot):
+    temporary = output_dir / 'latest_state.json.tmp'
+    temporary.write_text(snapshot + '\n', encoding='utf-8')
+    for attempt in range(8):
+        try:
+            temporary.replace(output_dir / 'latest_state.json')
+            return
+        except PermissionError:
+            # Windows readers can briefly prevent replacing an open file.
+            if attempt == 7: raise
+            time.sleep(0.02)
+
+
 def main(argv: list[str] | None = None) -> int:
     """刷新握手与一次 STATE 请求，保存后续状态直到游戏关闭输入管道。
 
@@ -107,9 +120,9 @@ def main(argv: list[str] | None = None) -> int:
     pending = None
     initially_refreshed = False
     refresh_started = None
+    session = None
     try:
         args.output_dir.mkdir(parents=True, exist_ok=True)
-        session = None
         if args.run:
             session = RunSession(args.output_dir, args.run, args.max_decisions, start_new=args.start_new, seed=args.seed, search_config=SearchConfig(beam_width=args.beam_width))
         elif args.combat:
@@ -144,9 +157,7 @@ def main(argv: list[str] | None = None) -> int:
                 record = {'timestamp': datetime.now(timezone.utc).isoformat(), 'raw_state': raw}
                 stream.write(safe_text(json.dumps(record, ensure_ascii=False, allow_nan=False)) + '\n')
                 stream.flush()
-                temporary = args.output_dir / 'latest_state.json.tmp'
-                temporary.write_text(snapshot + '\n', encoding='utf-8')
-                temporary.replace(args.output_dir / 'latest_state.json')
+                _publish_snapshot(args.output_dir, snapshot)
                 if session:
                     for command in session.receive(raw):
                         print(command, flush=True)
@@ -214,6 +225,11 @@ def main(argv: list[str] | None = None) -> int:
         print(safe_text(f'决策停止：{error}'), file=sys.stderr, flush=True)
     except (ValueError, UnicodeError):
         print('采集停止：收到无效 JSON 状态。', file=sys.stderr, flush=True)
-    except OSError:
-        print('采集停止：无法读写协议管道或状态文件。', file=sys.stderr, flush=True)
+    except OSError as error:
+        if session is not None:
+            try:
+                session._stop('transport_error', message=safe_text(str(error)))
+            except OSError:
+                pass
+        print(safe_text(f'采集停止：无法读写协议管道或状态文件：{error}'), file=sys.stderr, flush=True)
     return 1

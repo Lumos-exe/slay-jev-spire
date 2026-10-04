@@ -2,9 +2,42 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+import pytest
+from threading import Timer
 
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+@pytest.mark.skipif(sys.platform != 'win32', reason='Windows open-file replacement semantics')
+@pytest.mark.parametrize('release_reader',[True,False])
+def test_snapshot_reader_lock_retries_or_records_explicit_transport_stop(tmp_path,release_reader):
+    latest=tmp_path/'latest_state.json'
+    latest.write_text('{}',encoding='utf-8')
+    reader=latest.open()
+    process=subprocess.Popen([sys.executable,'-X','utf8',str(ROOT/'capture_game.py'),
+        '--output-dir',str(tmp_path),'--run','mock'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,text=True,encoding='utf-8')
+    timer=None
+    try:
+        assert process.stdout.readline()=='ready\n'
+        assert process.stdout.readline()=='STATE\n'
+        if release_reader:
+            timer=Timer(0.06,reader.close);timer.start()
+        raw={'in_game':False,'ready_for_command':True,'available_commands':['start','state']}
+        _,error=process.communicate(json.dumps(raw)+'\n',timeout=10)
+        if release_reader:
+            assert process.returncode==0,error
+            assert json.loads(latest.read_text(encoding='utf-8'))==raw
+        else:
+            assert process.returncode==1
+            rows=[json.loads(s) for s in (tmp_path/'runs.jsonl').read_text(encoding='utf-8').splitlines()]
+            assert rows[-1]['status']=='stopped' and rows[-1]['reason']=='transport_error'
+            assert latest.read_text(encoding='utf-8')=='{}'
+    finally:
+        if timer: timer.join()
+        reader.close()
+        if process.poll() is None: process.kill();process.communicate()
 
 
 def start_capture(tmp_path):
