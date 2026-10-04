@@ -6,7 +6,7 @@ not legality. Unknown triggers are reported, never certified as a lethal line.
 from copy import deepcopy
 from math import floor
 
-VERSION = 'ironclad-1'
+VERSION = 'ironclad-2'
 # id: type, normal cost, base damage, base block, magic. Live fields override values.
 CARD_SPECS = {
     'Strike_R': ('ATTACK', 1, 6, 0, 0), 'Defend_R': ('SKILL', 1, 0, 5, 0),
@@ -47,6 +47,8 @@ CARD_SPECS = {
     'Immolate': ('ATTACK', 2, 21, 0, 0), 'Impervious': ('SKILL', 2, 0, 30, 0),
     'Juggernaut': ('POWER', 2, 0, 0, 5), 'Limit Break': ('SKILL', 1, 0, 0, 0),
     'Offering': ('SKILL', 0, 0, 0, 3), 'Reaper': ('ATTACK', 2, 4, 0, 0),
+    # Colorless card acquired in normal Ironclad runs (e.g. Neow).
+    'Deep Breath': ('SKILL', 0, 0, 0, 1),
 }
 EXHAUST = {'Disarm', 'Infernal Blade', 'Intimidate', 'Pummel', 'Seeing Red', 'Shockwave',
            'Exhume', 'Feed', 'Fiend Fire', 'Impervious', 'Offering', 'Reaper', 'Warcry'}
@@ -112,7 +114,7 @@ def initial(summary):
                    powers=powers(e.get('powers', [])), intent=e['intent'],
                    damage=e.get('move_adjusted_damage'), base_damage=e.get('move_base_damage'), hits=e.get('move_hits'),
                    gone=e.get('is_gone', False), half_dead=e.get('half_dead', False)) for e in summary['enemies']],
-                 checkpoint=None, uncertainties=[], notes=[], draws=0, generated=0,
+                 checkpoint=None, uncertainties=[], notes=[], draws=0, generated=0, draw_prospects=[],
                  plays=summary.get('turn_counters', {}).get('cards_played', 0),
                  attacks=summary.get('turn_counters', {}).get('attacks_played', 0),
                  skills=summary.get('turn_counters', {}).get('skills_played', 0),
@@ -181,6 +183,19 @@ def draw(state, count):
             if card['type'] == 'STATUS': count += state['powers'].get('Evolve', 0)
         count = min(count, 10 - len(state['hand']), len(state['draw_pile']) + len(state['discard_pile']))
         if count:
+            pool = state['draw_pile'] + state['discard_pile']
+            def affordable(c):
+                cost = c['cost']
+                if 'Corruption' in state['powers'] and c['type'] == 'SKILL': cost = 0
+                if c['type']=='ATTACK' and state['powers'].get('FreeAttackPower',0)>0: cost = 0
+                if c.get('free_to_play_once'): cost = 0
+                return c['type'] in {'ATTACK','SKILL','POWER'} and ((cost >= 0 and cost <= state['energy'])
+                    or (cost == -1 and (state['energy'] > 0 or 'Chemical X' in state['relics'])))
+            playable = sum(affordable(c) for c in pool)
+            state['draw_prospects'].append({'count':count,'pool_size':len(pool),'affordable_cards':playable,
+                'expected_affordable_draws':count * playable / len(pool),
+                'has_on_draw_risks':any(c['type'] in {'STATUS','CURSE'} for c in pool),
+                'basis':'unordered pool estimate; excludes cards still resolving'})
             state['draws'] += count
             checkpoint(state, 'draw_cards')
 
@@ -473,6 +488,19 @@ def play(before, step):
             state['generated'] += count
             if pile == 'draw_pile': state['known_top'] = []
     if ident in {'Pommel Strike', 'Warcry', 'Battle Trance', 'Offering'}: draw(state, magic)
+    if ident == 'Deep Breath':
+        shuffled = len(state['discard_pile'])
+        if shuffled:
+            state['draw_pile'].extend(state['discard_pile'])
+            state['discard_pile'] = []
+            state['known_top'] = []
+            if 'Sundial' in state['relics']:
+                state['relics']['Sundial'] = (max(0,state['relics']['Sundial']) + 1) % 3
+                if state['relics']['Sundial'] == 0: state['energy'] += 2
+        draw(state, magic)
+        state['notes'].append({'effect':'shuffle_discard_into_draw_then_draw','cards_shuffled':shuffled,
+                               'requested_draw':magic,'pending_draw':state['draws'],
+                               'continuation':'Observe the actual cards, then plan the remaining energy. This is not END.'})
     if ident == 'Shrug It Off': draw(state, 1)
     if ident == 'Battle Trance': apply_power(state, None, 'No Draw', -1, True)
     if ident == 'Dropkick' and was_vulnerable:
@@ -579,13 +607,17 @@ def outcome(state):
     if won:
         ended = deepcopy(state)
         known = True
+    standing_loss = max(0, state['hp'] - ended['hp']) if known else None
     if not reliable:
         known = False
     return dict(enemy_hp=sum(enemy_hp), enemy_hp_by_target=enemy_hp,
                 incoming_hp_loss=max(0, state['hp'] - ended['hp']) if known else None,
                 player_hp_after_turn=ended['hp'] if known else None,
+                standing_hp_loss_estimate=standing_loss,
+                standing_estimate_scope='current known state only; excludes unresolved draws and effects',
                 self_damage=state['hp_spent'], healing=state['healing'], remaining_energy=state['energy'],
                 block=state['block'], powers=deepcopy(state['powers']), draw_count=state['draws'],
+                draw_prospects=deepcopy(state['draw_prospects']),
                 generated_cards=state['generated'], exhaust_count=len(state['exhaust_pile']),
                 combat_won=won and state['hp'] > 0 and reliable,
                 forecast_scope='deterministic' if reliable and known else 'partial',

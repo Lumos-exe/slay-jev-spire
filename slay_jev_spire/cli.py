@@ -63,9 +63,14 @@ def _command(argv):
         parser.add_argument('--combat-only', action='store_true')
         parser.add_argument('--seed')
         parser.add_argument('--beam-width', type=int, default=32)
-    if command == 'report':
+    if command in {'report','review'}:
         parser.add_argument('--run-id')
+    if command == 'report':
         parser.add_argument('--expected', type=int, default=10)
+    if command == 'review':
+        parser.add_argument('--log',type=Path)
+        parser.add_argument('--metadata',type=Path)
+        parser.add_argument('--output',type=Path)
     args = parser.parse_args(remaining)
     live = args.output_dir
     if command == 'configure':
@@ -87,13 +92,23 @@ def _command(argv):
             if not 1 <= args.budget <= 2000: parser.error('budget must be 1–2000')
             (live / 'resume.flag').write_text(str(args.budget), encoding='utf-8')
         print(command + ' requested')
-    elif command in {'status', 'report'}:
-        from .records import battle_metrics
-        path = live / 'runs.jsonl'
-        rows = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
+    elif command in {'status', 'report', 'review'}:
+        from .records import battle_metrics, read_run_records, review_run
+        path = getattr(args,'log',None) or live / 'runs.jsonl'
+        rows = read_run_records(path,getattr(args,'run_id',None))
         if command == 'report':
-            if args.run_id: rows = [r for r in rows if r.get('run_id') == args.run_id]
             result = battle_metrics(rows, expected=args.expected)
+        elif command == 'review':
+            metadata=json.loads(args.metadata.read_text(encoding='utf-8')) if args.metadata else None
+            result=review_run(rows,rows[0]['run_id'],metadata)
+            result['evidence_log']=str(path.resolve())
+            output=args.output or live/f"review-{rows[0]['run_id']}.json"
+            if output.resolve()==path.resolve() or (args.metadata and output.resolve()==args.metadata.resolve()):
+                raise ValueError('Review output must not overwrite its input.')
+            output.parent.mkdir(parents=True,exist_ok=True)
+            output.write_text(safe_text(json.dumps(result,ensure_ascii=False,indent=2))+'\n',encoding='utf-8')
+            print(str(output.resolve()))
+            return 0
         else:
             result = {k: rows[-1].get(k) for k in ('timestamp', 'run_id', 'status', 'reason', 'calls', 'actions')} if rows else {}
             result['is_snapshot'] = True
@@ -110,7 +125,7 @@ def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv and argv[0] == 'benchmark':
         return subprocess.call([sys.executable, str(ROOT / 'tools/benchmark.py'), *argv[1:]])
-    if argv and argv[0] in {'configure', 'play', 'pause', 'resume', 'status', 'report', 'agent'}:
+    if argv and argv[0] in {'configure', 'play', 'pause', 'resume', 'status', 'report', 'review', 'agent'}:
         try:
             return _command(argv)
         except (OSError, ValueError) as error:

@@ -322,3 +322,54 @@ def test_card_reward_can_return_to_an_event_after_acquisition():
     assert confirmation(before,after,action)=='card_added_to_deck'
     after['game_state']['deck']=[]
     assert confirmation(before,after,action) is None
+
+
+def test_deep_breath_plus_shuffles_then_draws_without_becoming_unknown():
+    breath=card('Deep Breath',0,'SKILL',magic=2,target=False);breath['upgrades']=1
+    raw=battle([breath,card('Strike_R',1,damage=6)],draw=[card('Bash',2,damage=8,magic=2)])
+    raw['game_state']['combat_state']['discard_pile']=[card('Defend_R',1,'SKILL',block=5,target=False)]
+    state=transition(raw,[('Deep Breath',None,None)])
+    assert state['draws']==2 and state['energy']==3 and state['checkpoint']=='draw_cards'
+    assert not state['uncertainties']
+    assert {c['id'] for c in state['draw_pile']}=={'Bash','Defend_R'}
+    assert [c['id'] for c in state['discard_pile']]==['Deep Breath']
+    out=rules.outcome(state)
+    assert out['incoming_hp_loss'] is None and out['standing_hp_loss_estimate']==12
+
+
+def test_no_draw_blocks_breath_draw_but_not_shuffle_or_sundial():
+    raw=battle([card('Deep Breath',0,'SKILL',magic=2,target=False)],
+        powers=[{'id':'NoDraw','name':'No Draw','amount':-1}],relics=[{'id':'Sundial','counter':2}])
+    raw['game_state']['combat_state']['discard_pile']=[card('Strike_R',1,damage=6)]
+    state=transition(raw,[('Deep Breath',None,None)])
+    assert state['draws']==0 and state['energy']==5 and state['relics']['Sundial']==0
+
+
+def test_draw_prefix_is_retained_with_energy_for_the_new_cards():
+    hand=[card('Deep Breath',0,'SKILL',magic=2,target=False),card('Bash',2,damage=8,magic=2)]
+    for i in range(3):
+        strike=card('Strike_R',1,damage=6);strike['uuid']=f'strike-{i}';hand.append(strike)
+    raw=battle(hand,draw=[card('Defend_R',1,'SKILL',block=5,target=False),card('Anger',0,damage=6)])
+    plans,_=generate_plans(*prepare_native_combat(raw),SearchConfig(beam_width=4))
+    assert any(p['sequence'][0].get('card_id')=='Deep Breath' and p['outcome']['remaining_energy']==3 for p in plans)
+
+
+def test_zero_energy_draw_has_no_invented_affordable_cards():
+    raw=battle([card('Deep Breath',0,'SKILL',magic=2,target=False)],energy=0,
+        draw=[card('Strike_R',1,damage=6),card('Defend_R',1,'SKILL',block=5,target=False)])
+    state=transition(raw,[('Deep Breath',None,None)])
+    assert state['draw_prospects'][0]['expected_affordable_draws']==0
+    assert state['draw_prospects'][0]['pool_size']==2
+
+
+def test_draw_plan_includes_conditional_continuation_of_existing_hand():
+    strike=card('Strike_R',1,damage=6)
+    raw=battle([card('Deep Breath',0,'SKILL',magic=2,target=False),strike],
+        draw=[card('Defend_R',1,'SKILL',block=5,target=False)])
+    plans,_=generate_plans(*prepare_native_combat(raw))
+    prefix=next(p for p in plans if len(p['sequence'])==1 and p['sequence'][0].get('card_id')=='Deep Breath')
+    continuation=prefix['outcome']['known_hand_continuation']
+    assert continuation['sequence']==[{'card_id':'Strike_R','target_index':0}]
+    assert continuation['outcome']['enemy_hp']==34
+    assert continuation['outcome']['forecast_scope']=='conditional_known_hand'
+    assert prefix['outcome']['forecast_scope']=='partial' and not prefix['outcome']['combat_won']

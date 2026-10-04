@@ -3,6 +3,8 @@
 from datetime import datetime, timezone
 import json
 import os
+import hashlib
+from collections import Counter
 from pathlib import Path
 from .models import Action, Decision, DecisionRecord
 
@@ -83,6 +85,137 @@ def battle_metrics(rows, expected=10):
                 api_requests=sum(r.get('status') == 'request_started' for r in rows),
                 mean_confidence=sum(r['decision']['confidence'] for r in decisions if r['decision'].get('confidence') is not None) / len(decisions) if decisions and all(r['decision'].get('confidence') is not None for r in decisions) else None,
                 battles=[dict(run_id=r.get('run_id'), battle_id=r.get('battle_id'), **r['result']) for r in battles.values()])
+
+
+def source_manifest():
+    """Capture component identities once at session creation, not on every action."""
+    root = Path(__file__).resolve().parent
+    components = {str(p.relative_to(root)).replace('\\', '/'): hashlib.sha256(p.read_bytes()).hexdigest()
+                  for p in sorted(root.rglob('*.py')) if '__pycache__' not in p.parts}
+    version = hashlib.sha256(json.dumps(components, sort_keys=True).encode()).hexdigest()
+    return {'code_version': version, 'components': components}
+
+
+def read_run_records(path, run_id=None):
+    """Select a run without materializing other runs' large state snapshots."""
+    if run_id is None:
+        last = None
+        with Path(path).open(encoding='utf-8') as stream:
+            for line in stream:
+                if line.strip(): last = line
+        if last is None: raise ValueError('No run records.')
+        run_id = json.loads(last).get('run_id')
+    if not run_id: raise ValueError('Missing run ID.')
+    rows = []
+    with Path(path).open(encoding='utf-8') as stream:
+        for line in stream:
+            if run_id not in line: continue
+            row = json.loads(line)
+            if row.get('run_id') == run_id: rows.append(row)
+    if not rows: raise ValueError('Run ID was not found.')
+    return rows
+
+
+def review_run(rows, run_id, metadata=None):
+    """Evidence packet for a model reviewer; observations are not causal verdicts."""
+    events = [r for r in rows if r.get('run_id') == run_id]
+    if not events: raise ValueError('Run ID was not found.')
+    names = ('NONE','MAP','COMBAT_REWARD','CARD_REWARD','EVENT','CHEST','SHOP_ROOM',
+             'SHOP_SCREEN','REST','BOSS_REWARD','GRID','HAND_SELECT','GAME_OVER')
+    coverage = {name: {'observed': False, 'decisions': 0, 'confirmed_actions': 0,
+                       'locations': set(), 'action_kinds': Counter()} for name in names}
+    last_game = {}; max_floor = 0; max_act = 0; models = set(); hotspots = []; inspected_rewards = set(); card_usage = {}
+    for row in events:
+        for raw in (row.get('before'), row.get('after')):
+            game = _game(raw)
+            if not game: continue
+            last_game = game
+            max_floor = max(max_floor, game.get('floor') or 0)
+            max_act = max(max_act, game.get('act') or 0)
+            name = game.get('screen_type')
+            if name == 'CARD_REWARD': inspected_rewards.add((game.get('act'),game.get('floor')))
+            if name in coverage:
+                coverage[name]['observed'] = True
+                coverage[name]['locations'].add((game.get('act'), game.get('floor')))
+        before = _game(row.get('before')); name = before.get('screen_type')
+        status = row.get('status'); decision = row.get('decision') or {}
+        if status == 'request_started':
+            playable = {c['id']:c for c in row.get('summary',{}).get('hand',[]) if c.get('is_playable')}
+            for identifier, card in playable.items():
+                usage=card_usage.setdefault(identifier,{'playable_model_decisions':0,'confirmed_play_commands':0,'max_upgrade_seen':0,'unmodeled_requests':0})
+                usage['playable_model_decisions'] += 1
+                usage['max_upgrade_seen'] = max(usage['max_upgrade_seen'],card.get('upgrades',0))
+                if any('unmodeled_card:'+identifier in c.get('uncertainties',[]) for c in row.get('candidates',[])):
+                    usage['unmodeled_requests'] += 1
+        if status == 'action_confirmed' and decision.get('action',{}).get('kind') == 'play':
+            uid=decision['action'].get('card_uuid')
+            card=next((c for c in before.get('combat_state',{}).get('hand',[]) if c.get('uuid')==uid),{})
+            if card.get('id'):
+                usage=card_usage.setdefault(card['id'],{'playable_model_decisions':0,'confirmed_play_commands':0,'max_upgrade_seen':0,'unmodeled_requests':0})
+                usage['confirmed_play_commands'] += 1
+        if decision.get('returned_model'): models.add(decision['returned_model'])
+        if name in coverage and status == 'decision': coverage[name]['decisions'] += 1
+        if name in coverage and status == 'action_confirmed':
+            coverage[name]['confirmed_actions'] += 1
+            coverage[name]['action_kinds'][decision.get('action',{}).get('kind','unknown')] += 1
+            if (name == 'COMBAT_REWARD' and decision.get('action',{}).get('kind') == 'proceed'
+                    and (before.get('act'),before.get('floor')) not in inspected_rewards
+                    and any(r.get('reward_type') == 'CARD' for r in before.get('screen_state',{}).get('rewards',[]))):
+                hotspots.append(dict(category='uninspected_card_reward',component_hint=['session.py'],
+                    step_id=row.get('step_id'),decision_id=row.get('decision_id'),floor=before.get('floor'),
+                    evidence_status='confirmed_unopened_reward_left'))
+            if name == 'COMBAT_REWARD' and decision.get('action',{}).get('kind') == 'proceed':
+                relics=[r.get('relic',{}).get('id') for r in before.get('screen_state',{}).get('rewards',[]) if r.get('reward_type')=='RELIC']
+                if relics: hotspots.append(dict(category='unclaimed_relic',component_hint=['session.py','selectors.py'],
+                    step_id=row.get('step_id'),floor=before.get('floor'),relic_ids=relics,evidence_status='observed_reward_left'))
+        if status == 'plan_invalidated':
+            expected, observed = row.get('expected',{}), row.get('observed',{})
+            hotspots.append(dict(category='forecast_divergence', component_hint=['rules.py','turn_planner.py'],
+                step_id=row.get('step_id'), decision_id=row.get('decision_id'), floor=before.get('floor'),
+                differing_fields=sorted(k for k in set(expected)|set(observed) if expected.get(k)!=observed.get(k)),
+                evidence_status='requires_rule_review'))
+        if status == 'stopped' and row.get('reason') not in {'paused','battle_finished','game_over','decision_limit','time_limit','action_limit'}:
+            reason = row.get('reason')
+            component = ['selectors.py'] if reason=='selection_error' else ['screens.py','session.py'] if name!='NONE' else ['state.py','rules.py','session.py']
+            hotspots.append(dict(category='technical_stop', reason=reason, component_hint=component,
+                step_id=row.get('step_id'), decision_id=row.get('decision_id'), floor=before.get('floor'),
+                message=row.get('message'), evidence_status='observed_stop_not_proven_root_cause'))
+        if status == 'action_confirmed':
+            after = _game(row.get('after')); a,b = before.get('current_hp'),after.get('current_hp')
+            if type(a) is int and type(b) is int and a-b >= 10:
+                hotspots.append(dict(category='large_observed_hp_loss', hp_loss=a-b,
+                    step_id=row.get('step_id'), decision_id=row.get('decision_id'), floor=before.get('floor'),
+                    component_hint=['turn_planner.py','selectors.py'], evidence_status='review_candidate_not_proven_mistake'))
+    for value in coverage.values():
+        value['locations'] = [list(x) for x in sorted(value['locations'], key=str)]
+        value['action_kinds'] = dict(value['action_kinds'])
+    lifecycle = next((r for r in reversed(events) if r.get('status') in {'complete','stopped','resumed'}),None)
+    terminal = lifecycle if lifecycle and lifecycle['status'] != 'resumed' else None
+    game_over = _game(terminal.get('after')) if terminal else {}
+    completed = bool(terminal and terminal['status']=='complete' and game_over.get('screen_type')=='GAME_OVER'
+                     and type(game_over.get('screen_state',{}).get('victory')) is bool)
+    created = next((r for r in events if r.get('status')=='created'),{})
+    requests = [r for r in events if r.get('status')=='request_started']
+    choices = []
+    for row in events:
+        d=row.get('decision',{}); distribution=d.get('probabilities')
+        if row.get('status') not in {'plan_selected','decision'} or not distribution: continue
+        if any(c['decision_id']==row.get('decision_id') for c in choices): continue
+        top=sorted(distribution.items(),key=lambda x:x[1],reverse=True)[:2]
+        choices.append(dict(decision_id=row.get('decision_id'),step_id=row.get('step_id'),
+            confidence=d.get('confidence'),top_choices=top,
+            margin=top[0][1]-top[1][1] if len(top)>1 else None))
+    choices.sort(key=lambda c: c['margin'] if c['margin'] is not None else 1)
+    return dict(schema_version=1,run_id=run_id,metadata=metadata or {},
+        code_version=created.get('code_version'),components=created.get('components',{}),models=sorted(models),
+        outcome=dict(completed=completed,victory=game_over.get('screen_state',{}).get('victory') if completed else None,
+                     reason=terminal.get('reason') if terminal else None,max_act=max_act,max_floor=max_floor,
+                     final_hp=last_game.get('current_hp'),score=game_over.get('screen_state',{}).get('score') if completed else None),
+        metrics=run_metrics(events),coverage=coverage,hotspots=hotspots,card_usage=card_usage,
+        uncertain_choices=choices[:12],request_count=len(requests),
+        review_contract={'facts':'Use the linked raw steps and candidates; HP deltas do not prove causality.',
+            'changes':'Propose the smallest component change with a regression fixture and a measurable acceptance criterion.',
+            'validation':'Re-run the affected fixture and a comparable run. One win or one loss does not establish improvement.'})
 
 
 

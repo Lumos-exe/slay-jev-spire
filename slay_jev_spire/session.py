@@ -5,7 +5,7 @@ from pathlib import Path
 import time
 from uuid import uuid4
 from .config import load_jev_key
-from .records import append_record, build_record
+from .records import append_record, build_record, source_manifest
 from .selectors import INSTRUCTIONS, SelectionError, choose_jev, choose_mock
 from .state import UnsupportedState, prepare_state
 from collections import Counter
@@ -20,6 +20,8 @@ from .state import load_catalog, enrich_summary
 from .screens import confirm_screen
 from .turn_planner import generate_plans, bind_plan_step, SearchConfig, fingerprint, battle_projection
 import importlib
+
+LOADED_COMPONENTS = source_manifest()
 
 
 
@@ -230,6 +232,10 @@ def confirmation(before: dict, after: dict, action: dict) -> str | None:
                 return 'key_collected'
         if reward_type == 'CARD' and screen == 'CARD_REWARD':
             return 'card_reward_opened'
+        if reward_type == 'RELIC':
+            relic_id = reward['relic']['id']
+            if sum(r.get('id') == relic_id for r in new.get('relics', [])) > sum(r.get('id') == relic_id for r in old.get('relics', [])):
+                return 'relic_reward_collected'
         remaining = new.get('screen_state', {}).get('rewards', [])
         expected = deepcopy(old['screen_state']['rewards'])
         expected.pop(action['choice_index'])
@@ -276,6 +282,7 @@ class RunSession(SessionRuntime):
         self.started_at = time.monotonic()
         self.run_id = run_id
         self.start_new = start_new
+        self.started_new_game = bool(start_new)
         game_dir = Path(os.environ.get('STS_GAME_DIRECTORY', r'C:\Program Files (x86)\Steam\steamapps\common\SlayTheSpire'))
         self.catalog = catalog if catalog is not None else load_catalog(game_dir / 'desktop-1.0.jar')
         self.step_id = 0
@@ -290,7 +297,8 @@ class RunSession(SessionRuntime):
     def _record(self, status, **fields):
         if status == 'action_confirmed':
             self.memory.observe(fields['before'], fields['after'], fields['decision'])
-        append_record(self.output_dir / 'runs.jsonl', {'schema_version': 2, 'policy_version': 'generate-rank-1', 'timestamp': datetime.now(timezone.utc).isoformat(), 'session_id': self.id, 'run_id': self.run_id or self.id, 'battle_id': self.battle_identity, 'decision_id': self.decision_id, 'step_id': self.step_id, 'mode': self.mode, 'status': status, 'calls': self.calls, 'actions': self.actions, **fields})
+        if status == 'created': fields['components'] = LOADED_COMPONENTS['components']
+        append_record(self.output_dir / 'runs.jsonl', {'schema_version': 2, 'policy_version': 'generate-rank-1', 'code_version': LOADED_COMPONENTS['code_version'], 'timestamp': datetime.now(timezone.utc).isoformat(), 'session_id': self.id, 'run_id': self.run_id or self.id, 'battle_id': self.battle_identity, 'decision_id': self.decision_id, 'step_id': self.step_id, 'mode': self.mode, 'status': status, 'calls': self.calls, 'actions': self.actions, **fields})
 
     def _export_report(self):
         """结束或中断时输出可读时间线；导出失败不改变已记录的执行结果。"""
@@ -318,6 +326,8 @@ class RunSession(SessionRuntime):
         if self._memory_restored:
             return
         self._memory_restored = True
+        if self.started_new_game:
+            return
         path = self.output_dir / 'runs.jsonl'
         try:
             with path.open(encoding='utf-8') as stream:
@@ -433,6 +443,8 @@ class RunSession(SessionRuntime):
                 return self._stop('run_changed')
         elif raw.get('in_game') is True:
             self.run_identity = (game.get('seed'), game.get('class'), game.get('ascension_level'))
+            if game.get('floor') == 0:
+                self.started_new_game = True
             self.started_at = time.monotonic()
         self._restore_memory()
         if self.phase == 'confirming':
@@ -529,7 +541,9 @@ class RunSession(SessionRuntime):
             elif self.planned_selection and game.get('screen_type') == 'NONE':
                 self.planned_selection = None
             free_reward = next((a for a in candidates if a.get('kind') == 'reward'
-                                and (a['reward']['reward_type'] in {'GOLD', 'STOLEN_GOLD'}
+                                and (a['reward']['reward_type'] in {'GOLD', 'STOLEN_GOLD', 'RELIC'}
+                                     or (a['reward']['reward_type'] == 'CARD'
+                                         and sum(x.get('kind') == 'reward' and x.get('reward',{}).get('reward_type') == 'CARD' for x in candidates) == 1)
                                      or (a['reward']['reward_type'] == 'POTION'
                                          and not any(r.get('id') == 'Sozu' for r in summary.get('relics', []))))), None)
             action = bind_plan_step(self.turn_queue[0], summary, candidates) if self.turn_queue and 'player' in summary else None
@@ -547,6 +561,8 @@ class RunSession(SessionRuntime):
                 self.turn_queue = []
                 action = None
                 source = 'local_free_reward'
+                if free_reward['reward']['reward_type'] == 'CARD':
+                    source = 'local_inspect_card_reward'
             elif len(candidates) == 1 and candidates[0].get('kind') == 'end':
                 decision = {'action': candidates[0], 'requested_model': None, 'returned_model': None, 'confidence': None}
                 action = None

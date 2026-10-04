@@ -28,8 +28,8 @@ def test_free_rewards_collected_before_leaving_without_model_requests(tmp_path):
         else:
             g['potions'][0] = item['potion']
     assert s.receive(raw) == ['STATE']
-    assert s.receive(raw) == ['PROCEED']
-    assert s.calls == 1 and len(calls) == 1
+    assert s.receive(raw) == ['CHOOSE 0']  # Inspect the remaining card reward first.
+    assert s.calls == 0 and not calls
 
 
 @pytest.mark.parametrize('monster_id', ['AcidSlime_S', 'FungiBeast'])
@@ -57,9 +57,30 @@ def test_full_slots_and_sozu_do_not_force_unclaimable_potion(tmp_path):
         raw = reward()
         g = raw['game_state']
         g['screen_state']['rewards'].pop(0); g['choice_list'].pop(0)
+        g['screen_state']['rewards'] = g['screen_state']['rewards'][:1]
+        g['choice_list'] = g['choice_list'][:1]
         g['potions'], g['relics'] = potions, relics
         s = RunSession(tmp_path / name, mode='mock', selector=lambda summary, actions:
                        choose_mock(summary, sorted(actions, key=lambda a: a['command'] != 'PROCEED')))
         assert s.receive(raw) == ['STATE']
         assert s.receive(raw) == ['PROCEED']
         assert s.calls == 1
+
+
+def test_free_relic_is_collected_even_if_selector_would_leave(tmp_path):
+    raw = reward();g=raw['game_state']
+    g['screen_state']['rewards']=[{'reward_type':'RELIC','relic':{'id':'Happy Flower','name':'Happy Flower','counter':-1}}]
+    g['choice_list']=['relic']
+    s=RunSession(tmp_path,mode='mock',selector=lambda *args:pytest.fail('Free relic is a local collection action'))
+    assert s.receive(raw)==['STATE'] and s.receive(raw)==['CHOOSE 0']
+    assert s.calls==0
+
+
+def test_relic_pickup_can_open_a_selection_screen():
+    from slay_jev_spire.session import confirmation
+    raw=reward();raw['game_state']['relics']=[]
+    action={'kind':'reward','command':'CHOOSE 0','choice_index':0,'reward':{'reward_type':'RELIC','relic':{'id':'Bottled Flame'}}}
+    after=deepcopy(raw);after['game_state'].update(screen_type='GRID',screen_state={},relics=[{'id':'Bottled Flame'}])
+    assert confirmation(raw,after,action)=='relic_reward_collected'
+    after['game_state']['relics']=[]
+    assert confirmation(raw,after,action) is None

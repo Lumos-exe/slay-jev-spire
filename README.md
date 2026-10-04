@@ -20,6 +20,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_jev_state.ps1 -I
 .venv\Scripts\python.exe main.py resume --budget 100
 .venv\Scripts\python.exe main.py status
 .venv\Scripts\python.exe main.py report --expected 10
+.venv\Scripts\python.exe main.py review
 ```
 
 密钥使用当前 Windows 用户的 DPAPI 加密保存，或设置 `TYPESAFE_API_KEY` 环境变量。
@@ -39,6 +40,9 @@ CommunicationMod 配置由启动脚本生成。协议入口是 `capture_game.py`
 `main.py agent --combat jev`；这些入口由游戏启动，不能把普通终端输出当协议输入。
 
 运行事件和概率分布保存在 `logs/live/runs.jsonl`，状态快照保存在 `states.jsonl`。
+`review` 为最近一局生成 JSON 复盘包，也可用 `--run-id` 或 `--log` 指定日志。
+复盘包包含真实节点覆盖、未查看的卡牌奖励、未领取遗物、牌的使用情况、预测偏差及组件版本。
+修改组件后先运行对应回归，再用相同条件重跑；单次输赢不直接证明改动有效。
 报告中的中断不算胜利；未跑满 10 场会显示缺失数量。确定牌序逐步校验执行，抽牌、随机结果
 及明确标记的未建模效果会产生观测点。真实模型概率及全卡池结算须以实际验证结果为准。
 

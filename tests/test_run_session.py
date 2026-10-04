@@ -82,8 +82,10 @@ def test_transition_timeout_and_pause_inside_selector(tmp_path):
         (tmp_path/'model'/'pause.flag').write_text('pause'); return choose_mock(summary,actions)
     s=session(tmp_path/'model',selector=pause)
     choice = reward()
-    choice['game_state']['screen_state']['rewards'] = [{'reward_type': 'CARD'}]
-    choice['game_state']['choice_list'] = ['card']
+    choice['game_state']['screen_type'] = 'CARD_REWARD'
+    choice['game_state']['screen_state'] = {'cards':[{'id':'Strike_R','name':'Strike','uuid':'choice'}], 'skip_available':True,'bowl_available':False}
+    choice['game_state']['choice_list'] = ['strike']
+    choice['available_commands'] = ['choose','skip','state']
     assert s.receive(choice)==[] and s.reason=='paused' and s.actions==0
 
 def test_missing_combat_hand_does_not_confirm_and_game_over_preserved(tmp_path):

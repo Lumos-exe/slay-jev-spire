@@ -11,8 +11,8 @@ from tests.test_journey import reward
 def screens():
     rewards = reward()
     g = rewards['game_state']
-    g['screen_state']['rewards'] = [{'reward_type': 'RELIC', 'relic': {'id': 'Anchor'}}, {'reward_type': 'CARD'}]
-    g['choice_list'] = ['relic', 'card']
+    g['screen_state']['rewards'] = [{'reward_type': 'EMERALD_KEY'}, {'reward_type': 'CARD'}]
+    g['choice_list'] = ['emerald_key', 'card']
     cards = copy.deepcopy(rewards)
     cards['available_commands'] = ['choose', 'skip', 'state']
     g = cards['game_state']
@@ -57,7 +57,7 @@ def test_skip_is_remembered_and_other_reward_indices_stay_native(tmp_path):
 
 def test_skip_memory_survives_resume_and_process_restart(tmp_path):
     s, rewards = skipped_session(tmp_path)
-    s.max_decisions = 2
+    s.max_decisions = 1
     s.receive(rewards)
     assert s.reason == 'decision_limit'
     resumed = resume_session(s, 20, session_factory=RunSession)
@@ -75,7 +75,16 @@ def test_skip_memory_survives_resume_and_process_restart(tmp_path):
     fresh['game_state']['seed'] += 1
     other = RunSession(tmp_path, mode='mock', selector=inspect, catalog={})
     other.receive(fresh)
-    assert 'CHOOSE 1' in [a['command'] for a in captured[-1]]
+    assert other.pending[1]['action']['command'] == 'CHOOSE 1' and other.calls == 0
+
+
+def test_new_game_with_same_seed_does_not_inherit_declined_rewards(tmp_path):
+    previous, rewards = skipped_session(tmp_path)
+    previous.receive(rewards)
+    fresh = RunSession(tmp_path, mode='mock', start_new=True, catalog={})
+    assert fresh.receive(rewards) == ['STATE']
+    assert fresh.pending[1]['action']['command'] == 'CHOOSE 1'
+    assert not fresh.memory.declined
 
 
 def test_same_state_loop_stops_before_another_model_call(tmp_path):

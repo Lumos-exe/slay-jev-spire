@@ -42,16 +42,51 @@ def fingerprint(value):
 
 def _quality(node):
     state, steps, out = node
-    loss = out['incoming_hp_loss'] if out['incoming_hp_loss'] is not None else state['hp']
-    hp = state['hp'] - loss
+    estimate = out.get('known_hand_continuation',{}).get('outcome',out)
+    loss = estimate['incoming_hp_loss']
+    if loss is None: loss = out.get('standing_hp_loss_estimate')
+    if loss is None: loss = state['hp']
+    hp = estimate.get('player_hp_after_turn')
+    if hp is None: hp = state['hp'] - loss
     setup = sum(max(0, v) for k, v in state['powers'].items() if k in {
         'Strength', 'Dexterity', 'Feel No Pain', 'Dark Embrace', 'Corruption', 'Barricade',
         'Demon Form', 'Metallicize', 'Rage', 'Juggernaut', 'Double Tap', 'Berserk'})
-    setup += 3 * out['draw_count'] + 2 * out['generated_cards']
+    useful_draws = sum(p['expected_affordable_draws'] for p in out.get('draw_prospects',[]))
+    setup += (3 + min(3,state['energy'])) * useful_draws + 2 * out['generated_cards']
     kill = int(out['combat_won'])
-    primary = (kill, hp > 0, -out['enemy_hp'] - 2.5 * loss + 2 * setup - state['hp_spent'])
+    enemy_hp = estimate['enemy_hp']
+    primary = (kill, hp > 0, -enemy_hp - 2.5 * loss + 2 * setup - state['hp_spent'])
     return [primary + (-len(steps),), (kill, hp, -out['enemy_hp'], setup),
-            (kill, -out['enemy_hp'], hp, setup), (kill, setup, hp, -out['enemy_hp'])]
+            (kill, -enemy_hp, hp, setup), (kill, setup, hp, -enemy_hp)]
+
+
+def _known_hand_continuation(state, deadline, max_nodes):
+    """Bounded conditional continuation, without inventing the unseen cards."""
+    if state['checkpoint'] != 'draw_cards' or state['uncertainties']:
+        return None, 0
+    if any(p['has_on_draw_risks'] for p in state['draw_prospects']):
+        return None, 0
+    root=deepcopy(state);root.update(checkpoint=None,draws=0,draw_prospects=[])
+    queue=[(root,[])];best=None;seen=set();nodes=0
+    while queue and nodes < min(64,max_nodes) and time.monotonic() < deadline:
+        current,sequence=queue.pop();nodes+=1
+        result=rules.outcome(current)
+        if result['forecast_scope']!='deterministic': continue
+        loss=result['incoming_hp_loss']
+        score=(current['hp']-(loss or 0)>0, -result['enemy_hp']-2.5*(loss or 0))
+        if best is None or score > best[0]: best=(score,sequence,result)
+        for step in rules.legal_steps(current):
+            child=rules.play(current,step)
+            if child['checkpoint']: continue
+            key=fingerprint(projection(child,True))
+            if key in seen: continue
+            seen.add(key)
+            card=next(c for c in current['hand'] if c['uuid']==step['card_uuid'])
+            queue.append((child,sequence+[{'card_id':card['id'],'target_index':step['target_index']}]))
+    if best is None: return None, nodes
+    result=best[2];result['forecast_scope']='conditional_known_hand';result['combat_won']=False
+    return {'sequence':best[1], 'outcome':result,
+            'assumption':'Continue using only cards already in hand, assuming the draw does not change HP, energy, costs, hand-dependent legality, effect scaling or triggers. Replan after observing it.'}, nodes
 
 def _diverse(nodes, width):
     if len(nodes) <= width:
@@ -69,7 +104,7 @@ def _diverse(nodes, width):
 def generate_plans(summary, actions, config=None):
     config = config or SearchConfig()
     started = time.monotonic()
-    stats = dict(rule_version=rules.VERSION, beam_width=config.beam_width, expanded=0,
+    stats = dict(rule_version=rules.VERSION, beam_width=config.beam_width, expanded=0, continuation_nodes=0,
                  deduplicated=0, depth=0, truncated=[], complete_enumeration=False)
     if 'player' not in summary:
         return [], stats
@@ -92,7 +127,7 @@ def generate_plans(summary, actions, config=None):
                 continue
             for step in rules.legal_steps(state):
                 if depth == 0 and (step['card_uuid'], step['target_index']) not in root_legal: continue
-                if stats['expanded'] >= config.max_nodes:
+                if stats['expanded'] + stats['continuation_nodes'] >= config.max_nodes:
                     stats['truncated'].append('node_budget'); break
                 if (time.monotonic() - started) * 1000 >= config.max_ms:
                     stats['truncated'].append('time_budget'); break
@@ -105,7 +140,12 @@ def generate_plans(summary, actions, config=None):
                 if key in visited:
                     stats['deduplicated'] += 1; continue
                 visited.add(key)
-                children.append((child, steps + [bound], rules.outcome(child)))
+                forecast=rules.outcome(child)
+                continuation, continued_nodes=_known_hand_continuation(child,started+config.max_ms/1000,
+                    config.max_nodes-stats['expanded']-stats['continuation_nodes'])
+                stats['continuation_nodes'] += continued_nodes
+                if continuation: forecast['known_hand_continuation']=continuation
+                children.append((child, steps + [bound], forecast))
             if 'node_budget' in stats['truncated'] or 'time_budget' in stats['truncated']: break
         for state, steps, out in children:
             ending = steps if state['checkpoint'] or not rules.live(state) else steps + [dict(kind='end', expected_before=projection(state, use_counters))]
