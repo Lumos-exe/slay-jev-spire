@@ -230,6 +230,72 @@ def test_generated_wounds_allow_power_through_second_wind_combo():
     assert combo['checkpoint'] is None
 
 
+def test_body_slam_dynamic_base_damage_does_not_break_block_combo():
+    from slay_jev_spire.turn_planner import bind_plan_step
+    first=card('Defend_R',1,'SKILL',block=5,target=False)
+    second=deepcopy(first);second['uuid']='second-defend'
+    raw=battle([first,second,card('Body Slam',1)],enemy_hp=10)
+    plans,_=generate_plans(*prepare_native_combat(raw))
+    combo=next(p for p in plans if [s.get('card_id') for s in p['sequence']]==['Defend_R','Defend_R','Body Slam'])
+    assert combo['outcome']['combat_won']
+    after=deepcopy(raw);combat=after['game_state']['combat_state']
+    for index,block in enumerate((5,10)):
+        played=next(c for c in combat['hand'] if c['uuid']==combo['steps'][index]['card_uuid'])
+        combat['hand'].remove(played);combat['discard_pile'].append(played)
+        combat['player'].update(energy=2-index,block=block)
+        slam=next(c for c in combat['hand'] if c['id']=='Body Slam')
+        slam['native_values'].update(base_damage=block,damage=block)
+        assert bind_plan_step(combo['steps'][index+1],*prepare_native_combat(after))
+    combat['player']['block']=8
+    assert bind_plan_step(combo['steps'][2],*prepare_native_combat(after)) is None
+
+
+def test_guardian_counts_actual_hp_loss_and_replans_only_at_mode_shift():
+    raw=battle([card('Strike_R',1,damage=6)],enemy_hp=100)
+    enemy=raw['game_state']['combat_state']['monsters'][0]
+    enemy.update(id='TheGuardian',block=4,powers=[{'id':'Mode Shift','name':'Mode Shift','amount':8}])
+    state=rules.initial(prepare_native_combat(raw)[0])
+    assert rules.damage_enemy(state,0,6)==2
+    assert state['enemies'][0]['powers']['Mode Shift']==6 and state['checkpoint'] is None
+    assert rules.outcome(state)['forecast_scope']=='deterministic'
+    # HP loss from Combust or other non-attack sources also counts.
+    assert rules.damage_enemy(state,0,5,False)==5
+    assert state['enemies'][0]['powers']['Mode Shift']==1 and state['checkpoint'] is None
+    rules.damage_enemy(state,0,1)
+    assert state['checkpoint']=='enemy_reaction'
+    assert rules.outcome(state)['forecast_scope']=='partial'
+
+
+def test_guardian_below_threshold_keeps_multi_card_attack_plans():
+    raw=battle([card('Strike_R',1,damage=6),card('Bash',2,damage=8,magic=2)],enemy_hp=100)
+    enemy=raw['game_state']['combat_state']['monsters'][0]
+    enemy.update(id='TheGuardian',powers=[{'id':'Mode Shift','name':'Mode Shift','amount':40}])
+    plans,_=generate_plans(*prepare_native_combat(raw))
+    combo=next(p for p in plans if [s.get('card_id') for s in p['sequence']]==['Bash','Strike_R',None])
+    assert combo['outcome']['enemy_hp']==83
+    assert combo['outcome']['forecast_scope']=='deterministic'
+    assert combo['steps'][-1]['expected_before']['enemies'][0]['powers']['Mode Shift']==23
+
+
+def test_dual_wield_plan_rebinds_both_replaced_original_and_extra_copy():
+    from slay_jev_spire.turn_planner import bind_plan_step
+    attack=card('Strike_R',1,damage=6)
+    raw=battle([card('Dual Wield',1,'SKILL',magic=1,target=False),attack],enemy_hp=12)
+    plans,_=generate_plans(*prepare_native_combat(raw))
+    combo=next(p for p in plans if [s.get('card_id') for s in p['sequence']]==['Dual Wield','Strike_R','Strike_R'])
+    after=deepcopy(raw);combat=after['game_state']['combat_state']
+    combat['discard_pile']=[combat['hand'][0]]
+    combat['hand']=[dict(deepcopy(attack),uuid='native-copy-1'),dict(deepcopy(attack),uuid='native-copy-2')]
+    combat['player']['energy']=2
+    first=bind_plan_step(combo['steps'][1],*prepare_native_combat(after))
+    assert first and first['card_uuid'] in {'native-copy-1','native-copy-2'}
+    played=next(c for c in combat['hand'] if c['uuid']==first['card_uuid'])
+    combat['hand'].remove(played);combat['discard_pile'].append(played)
+    combat['player']['energy']=1;combat['monsters'][0]['current_hp']=6
+    second=bind_plan_step(combo['steps'][2],*prepare_native_combat(after))
+    assert second and second['card_uuid']!=first['card_uuid']
+
+
 def test_generated_card_uuid_is_bound_from_observed_game_state():
     from slay_jev_spire.turn_planner import bind_plan_step
     raw=battle([card('Power Through',1,'SKILL',block=15,target=False),

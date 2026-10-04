@@ -103,6 +103,9 @@ def card_state(card):
     for field, index in [('base_damage', 2), ('base_block', 3), ('magic_number', 4)]:
         value = native.get(field, native.get(field.removeprefix('base_'), spec[index]))
         result[field] = max(0, value) if type(value) is int else spec[index]
+    # Body Slam rewrites baseDamage from current block in applyPowers.
+    # Its damage is derived from state['block'], not a persistent card stat.
+    if card['id'] == 'Body Slam': result['base_damage'] = 0
     return result
 
 
@@ -285,6 +288,11 @@ def damage_enemy(state, index, amount, attack=True):
         enemy['powers']['Invincible'] = max(0, enemy['powers']['Invincible'] - dealt)
     if attack:
         lose_hp(state, enemy['powers'].get('Thorns', 0) + enemy['powers'].get('Sharp Hide', 0), blockable=True)
+    # Guardian counts actual HP loss from every damage source. Attacks below
+    # the remaining threshold do not change its intent or interrupt the plan.
+    if enemy['hp'] > 0 and enemy['id'] == 'TheGuardian' and 'Mode Shift' in enemy['powers']:
+        enemy['powers']['Mode Shift'] = max(0, enemy['powers']['Mode Shift'] - dealt)
+        if enemy['powers']['Mode Shift'] == 0: checkpoint(state, 'enemy_reaction')
     if enemy['hp'] <= 0:
         if enemy['powers'].get('Spore Cloud'):
             apply_power(state, None, 'Vulnerable', enemy['powers']['Spore Cloud'], True)
@@ -299,7 +307,8 @@ def damage_enemy(state, index, amount, attack=True):
                 checkpoint(state, 'enemy_intent_recalculation')
         if amount > 0 and enemy['powers'].get('Malleable', 0) > 0:
             enemy['block'] += enemy['powers']['Malleable']; enemy['powers']['Malleable'] += 1
-        if any(p in enemy['powers'] for p in ('Flight', 'Mode Shift', 'Split')):
+        if (any(p in enemy['powers'] for p in ('Flight', 'Split'))
+                or ('Mode Shift' in enemy['powers'] and enemy['id'] != 'TheGuardian')):
             checkpoint(state, 'enemy_reaction')
         if enemy['id'] in {'AcidSlime_L', 'SpikeSlime_L'} and enemy['hp'] <= enemy['max_hp'] / 2:
             checkpoint(state, 'slime_split_intent')
@@ -533,6 +542,8 @@ def play(before, step):
         elif ident == 'Dual Wield':
             chosen = next((c for c in state['hand'] if c['uuid'] == selected), None)
             if chosen:
+                # Native Dual Wield replaces the selected original with a copy too.
+                chosen['uuid'] = f'@generated:{state["plays"]}:{chosen["id"]}:original'
                 for n in range(magic):
                     copy = deepcopy(chosen); copy['uuid'] = f'@generated:{state["plays"]}:{copy["id"]}:{n}'
                     (state['hand'] if len(state['hand']) < 10 else state['discard_pile']).append(copy)
