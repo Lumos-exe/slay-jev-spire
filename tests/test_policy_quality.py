@@ -277,6 +277,31 @@ def test_guardian_below_threshold_keeps_multi_card_attack_plans():
     assert combo['steps'][-1]['expected_before']['enemies'][0]['powers']['Mode Shift']==23
 
 
+@pytest.mark.parametrize('identity',['SlimeBoss','AcidSlime_L','SpikeSlime_L'])
+def test_slime_reaction_waits_for_half_hp_including_non_attack_damage(identity):
+    raw=battle([card('Strike_R',1,damage=6)],enemy_hp=101)
+    enemy=raw['game_state']['combat_state']['monsters'][0]
+    enemy.update(id=identity,block=10,powers=[{'id':'Split','name':'Split','amount':1}])
+    state=rules.initial(prepare_native_combat(raw)[0])
+    rules.damage_enemy(state,0,30)
+    assert state['enemies'][0]['hp']==81 and state['checkpoint'] is None
+    rules.damage_enemy(state,0,30,False)
+    assert state['enemies'][0]['hp']==51 and state['checkpoint'] is None
+    rules.damage_enemy(state,0,1,False)
+    assert state['enemies'][0]['hp']==50 and state['checkpoint']=='slime_split_intent'
+    assert rules.outcome(state)['forecast_scope']=='partial'
+
+
+def test_slime_above_half_hp_preserves_attack_and_block_sequence():
+    raw=battle([card('Strike_R',1,damage=6),card('Cleave',1,damage=8,target=False),
+                card('Defend_R',1,'SKILL',block=5,target=False)],enemy_hp=140)
+    enemy=raw['game_state']['combat_state']['monsters'][0]
+    enemy.update(id='SlimeBoss',powers=[{'id':'Split','name':'Split','amount':1}])
+    plans,_=generate_plans(*prepare_native_combat(raw))
+    assert any(p['outcome']['enemy_hp']==126 and p['outcome']['block']==5
+               and p['outcome']['forecast_scope']=='deterministic' for p in plans)
+
+
 def test_dual_wield_plan_rebinds_both_replaced_original_and_extra_copy():
     from slay_jev_spire.turn_planner import bind_plan_step
     attack=card('Strike_R',1,damage=6)

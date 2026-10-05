@@ -271,6 +271,7 @@ def apply_power(state, target, power, amount, debuff=False):
 
 def damage_enemy(state, index, amount, attack=True):
     enemy = state['enemies'][index]
+    splitting_slime = enemy['id'] in {'SlimeBoss', 'AcidSlime_L', 'SpikeSlime_L'}
     if enemy['hp'] <= 0:
         return 0
     if enemy['powers'].get('Intangible', 0) > 0:
@@ -293,6 +294,10 @@ def damage_enemy(state, index, amount, attack=True):
     if enemy['hp'] > 0 and enemy['id'] == 'TheGuardian' and 'Mode Shift' in enemy['powers']:
         enemy['powers']['Mode Shift'] = max(0, enemy['powers']['Mode Shift'] - dealt)
         if enemy['powers']['Mode Shift'] == 0: checkpoint(state, 'enemy_reaction')
+    # Native slime damage handlers interrupt the intent only at half HP,
+    # including HP lost to non-attack damage. Above it, keep planning the turn.
+    if splitting_slime and 0 < enemy['hp'] <= enemy['max_hp'] / 2:
+        checkpoint(state, 'slime_split_intent')
     if enemy['hp'] <= 0:
         if enemy['powers'].get('Spore Cloud'):
             apply_power(state, None, 'Vulnerable', enemy['powers']['Spore Cloud'], True)
@@ -307,11 +312,9 @@ def damage_enemy(state, index, amount, attack=True):
                 checkpoint(state, 'enemy_intent_recalculation')
         if amount > 0 and enemy['powers'].get('Malleable', 0) > 0:
             enemy['block'] += enemy['powers']['Malleable']; enemy['powers']['Malleable'] += 1
-        if (any(p in enemy['powers'] for p in ('Flight', 'Split'))
+        if ('Flight' in enemy['powers'] or ('Split' in enemy['powers'] and not splitting_slime)
                 or ('Mode Shift' in enemy['powers'] and enemy['id'] != 'TheGuardian')):
             checkpoint(state, 'enemy_reaction')
-        if enemy['id'] in {'AcidSlime_L', 'SpikeSlime_L'} and enemy['hp'] <= enemy['max_hp'] / 2:
-            checkpoint(state, 'slime_split_intent')
     return dealt
 
 
