@@ -270,6 +270,11 @@ def confirmation(before: dict, after: dict, action: dict) -> str | None:
                 return 'card_added_to_deck'
     if kind == 'proceed' and screen == 'MAP':
         return 'map_opened'
+    if (kind == 'proceed' and old_screen == 'COMBAT_REWARD' and screen == 'EVENT'
+            and old.get('room_phase') == 'COMPLETE' and new.get('room_phase') in {'EVENT','COMPLETE'}
+            and all(old.get(k) == new.get(k) for k in ('act','floor'))
+            and new.get('screen_state',{}).get('event_id')):
+        return 'reward_overlay_closed_to_event'
     if kind in {'map', 'boss'} and new.get('floor', 0) == old.get('floor', 0) + 1 and (screen != 'MAP'):
         return 'floor_advanced_destination_not_directly_reported'
     return None

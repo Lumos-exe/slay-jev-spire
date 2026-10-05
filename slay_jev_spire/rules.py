@@ -80,7 +80,7 @@ TRIGGER_RELICS = {'Pen Nib', 'Nunchaku', 'Shuriken', 'Kunai', 'Ornamental Fan', 
 KNOWN_POWERS = set(('Strength|Dexterity|Weak|Vulnerable|Frail|Artifact|Rage|Plated Armor|Metallicize|'
     'Feel No Pain|Dark Embrace|Corruption|Barricade|Berserk|Brutality|Demon Form|Evolve|'
     'Fire Breathing|Flame Barrier|Combust|Rupture|Juggernaut|Double Tap|No Draw|Flex|'
-    'Ritual|Thievery|Curl Up|Thorns|Angry|Mode Shift|Spore Cloud|'
+    'Ritual|Thievery|Curl Up|Thorns|Angry|Anger|Mode Shift|Spore Cloud|'
     'Intangible|IntangiblePlayer|Invincible|Buffer|Entangled|NoBlock|'
     'Minion|Shackled|Draw Reduction|BeatOfDeath|Time Warp|Flight|Split|'
     'DuplicationPower|Pen Nib|FreeAttackPower|Double Damage|Vigor|LoseStrength').split('|'))
@@ -180,7 +180,7 @@ def live(state):
 POTION_EFFECTS = {'Block Potion': 'block', 'Weak Potion': 'weak',
                  'Strength Potion': 'strength', 'Dexterity Potion': 'dexterity',
                  'Energy Potion': 'energy', 'Fire Potion': 'fire',
-                 'Explosive Potion': 'explosive'}
+                 'Explosive Potion': 'explosive', 'BlessingOfTheForge': 'upgrade_hand'}
 
 
 def potion_steps(state, summary, actions):
@@ -219,6 +219,10 @@ def use_potion(before, step):
     elif effect == 'fire': damage_enemy(state, step['target_index'], amount, False)
     elif effect == 'explosive':
         for target in live(state): damage_enemy(state, target, amount, False)
+    elif effect == 'upgrade_hand':
+        # Native BlessingOfTheForge.use queues ArmamentsAction(true), with
+        # potency 0. It upgrades eligible cards; it is not a played Skill.
+        for card in state['hand']: upgrade_from_preview(state, card)
     refresh_intents(state, before)
     # Unknown relics may react to potion use (e.g. Toy Ornithopter). Observe
     # their real result before following cards; never certify an assumed result.
@@ -236,6 +240,26 @@ def record_generation(state, ident, kind, count=1, uuid=None):
 
 def checkpoint(state, reason):
     state['checkpoint'] = state['checkpoint'] or reason
+
+
+def upgrade_from_preview(state, card):
+    """Consume one observed upgrade, never extrapolate the next upgrade."""
+    if card.get('can_upgrade') is False:
+        return
+    preview = card.get('upgrade_preview')
+    fields = ('cost', 'base_damage', 'base_block', 'magic_number', 'upgrades')
+    # Native previews are emitted only for canUpgrade() cards. In particular,
+    # timesUpgraded alone cannot establish eligibility (e.g. Searing Blow).
+    if (not isinstance(preview, dict) or any(type(preview.get(k)) is not int for k in fields)
+            or preview['cost'] < -2 or preview['upgrades'] <= card.get('upgrades', 0)):
+        checkpoint(state, 'upgrade_values_unavailable')
+        return
+    card.update({k: max(0, preview[k]) if k in {'base_damage', 'base_block', 'magic_number'}
+                 else preview[k] for k in fields})
+    if card['id'] == 'Body Slam': card['base_damage'] = 0
+    # Eligibility after this upgrade is not supplied by the original snapshot.
+    # A later attempted upgrade must observe fresh values instead of reusing it.
+    card.pop('upgrade_preview', None)
 
 
 def draw(state, count):
@@ -470,6 +494,12 @@ def play(before, step):
     if ident not in CARD_SPECS and kind not in {'STATUS', 'CURSE'}:
         state['uncertainties'].append('unmodeled_card:' + ident)
         checkpoint(state, 'unmodeled_card')
+    if kind == 'SKILL':
+        # AngerPower.onUseCard adds Strength via addToTop before card effects.
+        # This is Nob's Skill trigger, distinct from Angry's attack reaction.
+        for i in live(state):
+            amount = state['enemies'][i]['powers'].get('Anger', 0)
+            if amount: apply_power(state, i, 'Strength', amount)
     # Effects that precede damage.
     if ident == 'Hemokinesis': lose_hp(state, magic, card=True)
     if ident in {'Sever Soul', 'Second Wind', 'Fiend Fire'}:
@@ -597,10 +627,7 @@ def play(before, step):
         if ident == 'Armaments':
             for candidate in state['hand']:
                 if upgraded or candidate['uuid'] == selected:
-                    if candidate.get('upgrade_preview'):
-                        candidate.update({k: max(0, v) if k in {'base_damage', 'base_block', 'magic_number'} else v for k, v in candidate['upgrade_preview'].items()})
-                    elif candidate.get('can_upgrade', candidate.get('upgrades', 0) == 0):
-                        checkpoint(state, 'upgrade_values_unavailable')
+                    upgrade_from_preview(state, candidate)
         elif ident in {'Headbutt', 'Exhume'}:
             source = state['discard_pile'] if ident == 'Headbutt' else state['exhaust_pile']
             chosen = next((c for c in source if c['uuid'] == selected), None)

@@ -52,6 +52,19 @@ def test_temporary_card_pickup_is_not_confused_with_permanent_reward():
     assert confirmation(before,after,action)=='temporary_card_added'
 
 
+def test_event_reward_proceed_confirms_return_to_same_floor_event():
+    # Round 12 step159: Wheel of Change's relic reward returns to its Leave option.
+    from slay_jev_spire.session import confirmation
+    before={'game_state':{'act':1,'floor':10,'screen_type':'COMBAT_REWARD',
+                         'room_phase':'COMPLETE','screen_state':{'rewards':[]}}}
+    after={'game_state':{'act':1,'floor':10,'screen_type':'EVENT','room_phase':'COMPLETE',
+                        'screen_state':{'event_id':'Wheel of Change'}}}
+    action={'kind':'proceed','command':'PROCEED'}
+    assert confirmation(before,after,action)=='reward_overlay_closed_to_event'
+    after['game_state']['floor']=11
+    assert confirmation(before,after,action) is None
+
+
 def send(s,r):
     assert s.receive(r)==['STATE']
     command=s.receive(r)[0]; s.command_sent(command); return command

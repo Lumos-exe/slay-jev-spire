@@ -653,3 +653,94 @@ def test_potion_lethal_does_not_erase_safe_resource_preserving_end():
     assert any(p['outcome']['combat_won'] and p['outcome']['potions_used'] for p in plans)
     assert any(p['sequence']==[{'kind':'end'}] and not p['outcome']['potions_used']
                and p['outcome']['incoming_hp_loss']==0 for p in plans)
+
+
+def nob_lethal_state(energy=3):
+    hand = []
+    for i in range(3):
+        strike = card('Strike_R', 1, damage=6, can_upgrade=True,
+                      upgrade_preview=dict(cost=1, base_damage=9, base_block=-1, magic_number=-1, upgrades=1))
+        strike['uuid'] = f'strike-{i}'; hand.append(strike)
+    for i in range(2):
+        defend = card('Defend_R', 1, 'SKILL', block=5, target=False, can_upgrade=True,
+                      upgrade_preview=dict(cost=1, base_damage=-1, base_block=8, magic_number=-1, upgrades=1))
+        defend['uuid'] = f'defend-{i}'; hand.append(defend)
+    raw = battle(hand, energy=energy, enemy_hp=16, powers=[
+        {'id':'Strength','name':'Strength','amount':3}, {'id':'Vulnerable','name':'Vulnerable','amount':2}])
+    combat = raw['game_state']['combat_state']; combat['player']['current_hp'] = 41
+    combat['monsters'][0].update(id='GremlinNob', max_hp=86, move_base_damage=14, move_adjusted_damage=30,
+        powers=[{'id':'Anger','name':'Anger','amount':2}, {'id':'Strength','name':'Strength','amount':6},
+                {'id':'Vulnerable','name':'Vulnerable','amount':3}])
+    return raw
+
+
+def test_nob_skill_enrage_recalculates_incoming_without_unknown_checkpoint():
+    # Native AngerPower.onUseCard: Skill => addToTop StrengthPower(amount).
+    raw = nob_lethal_state()
+    state = transition(raw, [('defend-0', None, None)])
+    assert state['enemies'][0]['powers']['Strength'] == 8
+    assert state['enemies'][0]['damage'] == 33
+    assert state['block'] == 5 and not state['uncertainties'] and state['checkpoint'] is None
+    assert rules.outcome(state)['incoming_hp_loss'] == 28
+
+
+def test_nob_two_strikes_lethal_is_kept_as_one_whole_turn_without_potion():
+    # Round 12 D52: 16 HP Nob, each Strike deals 13; playing two Defends first
+    # wasted the lethal and caused 26 HP loss in the observed run.
+    plans, _ = generate_plans(*prepare_native_combat(nob_lethal_state()))
+    two_strikes = [p for p in plans if [s.get('card_id') for s in p['sequence']] == ['Strike_R', 'Strike_R']]
+    assert two_strikes
+    assert all(p['outcome']['combat_won'] and p['outcome']['player_hp_after_turn'] == 41
+               and not p['outcome']['potions_used'] and not p['uncertainties'] for p in two_strikes)
+
+
+def test_forge_zero_potency_upgrades_then_kills_nob_without_skill_trigger():
+    # Round 12 D54, after both Defends: one energy, 16 HP enemy, upgraded
+    # Strike deals floor((9 + 3) * 1.5) = 18. Potion itself does not enrage Nob.
+    raw = nob_lethal_state(energy=1)
+    combat = raw['game_state']['combat_state']; combat['hand'] = combat['hand'][:3]
+    combat['player']['block'] = 10; combat['monsters'][0]['powers'][1]['amount'] = 10
+    combat['monsters'][0]['move_adjusted_damage'] = 36
+    with_potion(raw, 'BlessingOfTheForge', 0)
+    summary, actions = prepare_native_combat(raw)
+    initial = rules.initial(summary)
+    upgraded = rules.use_potion(initial, rules.potion_steps(initial, summary, actions)[0])
+    assert upgraded['enemies'][0]['powers']['Strength'] == 10 and upgraded['energy'] == 1
+    assert all(c['upgrades'] == 1 and c['base_damage'] == 9 for c in upgraded['hand'])
+    assert rules.attack_damage(upgraded, upgraded['hand'][0], 0) == 18
+    plans, stats = generate_plans(summary, actions)
+    combo = next(p for p in plans if [s['kind'] for s in p['sequence']] == ['potion', 'play'])
+    assert combo['sequence'][0]['potion_id'] == 'BlessingOfTheForge'
+    assert combo['outcome']['combat_won'] and combo['outcome']['player_hp_after_turn'] == 41
+    assert stats['planned_potion_uses'] == ['potion_use_0']
+
+
+@pytest.mark.parametrize('metadata', [{}, {'can_upgrade':True},
+    {'can_upgrade':True, 'upgrade_preview':{'cost':1,'base_damage':9,'upgrades':1}},
+    {'can_upgrade':True, 'upgrade_preview':{'cost':1,'base_damage':9,'base_block':0,'magic_number':0,'upgrades':0}}])
+def test_forge_missing_or_stale_upgrade_metadata_stops_for_observation(metadata):
+    raw = with_potion(battle([card('Strike_R', 1, damage=6, **metadata)]), 'BlessingOfTheForge', 0)
+    plans, _ = generate_plans(*prepare_native_combat(raw))
+    prefixes = [p for p in plans if p['outcome']['potions_used']]
+    assert prefixes and all(len(p['sequence']) == 1 and p['checkpoint'] == 'upgrade_values_unavailable'
+                            and p['outcome']['forecast_scope'] == 'partial' for p in prefixes)
+
+
+def test_forge_respects_explicit_cannot_upgrade_and_does_not_reuse_preview():
+    searing = card('Searing Blow', 2, damage=16, can_upgrade=True,
+        upgrade_preview=dict(cost=2, base_damage=21, base_block=-1, magic_number=-1, upgrades=2))
+    searing['upgrades'] = 1
+    fixed = card('Strike_R', 1, damage=9, can_upgrade=False,
+        upgrade_preview=dict(cost=1, base_damage=100, base_block=-1, magic_number=-1, upgrades=2))
+    fixed['upgrades'] = 1
+    raw = with_potion(battle([searing, fixed, card('Armaments', 1, 'SKILL', block=5, target=False, can_upgrade=False)]),
+                      'BlessingOfTheForge', 0)
+    summary, actions = prepare_native_combat(raw); initial = rules.initial(summary)
+    upgraded = rules.use_potion(initial, rules.potion_steps(initial, summary, actions)[0])
+    assert upgraded['hand'][0]['upgrades'] == 2 and upgraded['hand'][0]['base_damage'] == 21
+    assert upgraded['hand'][1]['upgrades'] == 1 and upgraded['hand'][1]['base_damage'] == 9
+    assert upgraded['checkpoint'] is None
+    again = next(s for s in rules.legal_steps(upgraded) if s['card_uuid'] == 'Armaments' and s['selection_uuid'] == 'Searing Blow')
+    repeated = rules.play(upgraded, again)
+    assert repeated['checkpoint'] == 'upgrade_values_unavailable'
+    assert next(c for c in repeated['hand'] if c['id']=='Searing Blow')['upgrades'] == 2

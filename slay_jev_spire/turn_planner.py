@@ -124,11 +124,71 @@ def _equivalent_end_state(state, out):
         value[pile] = sorted(cards, key=lambda c: json.dumps(c, sort_keys=True, ensure_ascii=False))
     return fingerprint([value, out, state['known_top'], state['attacks_this_combat']])
 
+
+def _resource_signature(node):
+    """Only plain ENDs with interchangeable future discards are comparable."""
+    state, steps, out = node
+    if (out['forecast_scope'] != 'deterministic' or not steps or steps[-1]['kind'] != 'end'
+            or state['checkpoint'] or state['uncertainties'] or state['known_top']
+            or state['draws'] or state['generated'] or out['exhausted_card_counts']
+            or out['player_hp_after_turn'] is None or out['player_hp_after_turn'] <= 0
+            or out['retained_block'] is None): return None
+    # End-turn triggers are not represented by a complete future state here.
+    # Exclude them instead of claiming equivalence from the HP projection alone.
+    safe_powers = {'Strength', 'Dexterity', 'Weak', 'Vulnerable', 'Frail',
+                   'Artifact', 'Barricade', 'NoBlock', 'No Draw'}
+    if (set(state['powers']) - safe_powers
+            or set(state['relics']) - (rules.PASSIVE_RELICS | {'Calipers', 'Ice Cream'})
+            or {'Runic Pyramid', 'Red Skull'} & set(state['relics'])): return None
+    enemy_hp = out.get('enemy_hp_after_turn_by_target')
+    if (enemy_hp is None or any(hp <= 0 for hp in enemy_hp)
+            or enemy_hp != out['enemy_hp_by_target']
+            or any(e['intent'] == 'SLEEP' or e['half_dead'] or e['gone'] for e in state['enemies'])): return None
+    piles = ('hand', 'draw_pile', 'discard_pile', 'exhaust_pile')
+    cards = [c for pile in piles for c in state[pile]]
+    if (any(c.get(k) for c in cards for k in ('retain', 'self_retain', 'is_retained'))
+            or any(c.get('ethereal') or c['type'] in {'STATUS', 'CURSE'} for c in state['hand'])
+            or any(c['id'] not in rules.CARD_SPECS for c in cards)): return None
+    def card(c):
+        return {k: v for k, v in c.items() if k not in {'uuid', 'card_uuid', 'hand_index', 'play_index'}}
+    # Keep every non-identity card field: costs, upgrades, native fields and
+    # one-use flags remain significant. Draw/exhaust never merge with discard.
+    value = {k: v for k, v in state.items() if k not in {*piles, 'hp', 'block', 'enemies', 'initial_exhaust_ids'}}
+    value['initial_exhaust_ids'] = sorted(state['initial_exhaust_ids'])
+    value['future_discard'] = sorted([card(c) for c in state['hand'] + state['discard_pile']],
+                                    key=lambda c: json.dumps(c, sort_keys=True, ensure_ascii=False))
+    for pile in ('draw_pile', 'exhaust_pile'): value[pile] = [card(c) for c in state[pile]]
+    value['enemies'] = [{k: v for k, v in e.items() if k != 'hp'} for e in state['enemies']]
+    value['retained_block'] = out['retained_block']
+    return fingerprint(value)
+
+
+def _prune_resource_dominated(nodes):
+    """At most 32 final candidates; retain unknowns and all resource tradeoffs."""
+    if len(nodes) > 32: return nodes, 0
+    signatures = [_resource_signature(n) for n in nodes]
+    kept = []
+    for i, node in enumerate(nodes):
+        out = node[2]
+        dominated = False
+        if signatures[i] is not None:
+            for j, other in enumerate(nodes):
+                if i == j or signatures[i] != signatures[j]: continue
+                better = other[2]
+                hp = out['player_hp_after_turn']; other_hp = better['player_hp_after_turn']
+                enemies = out['enemy_hp_after_turn_by_target']; other_enemies = better['enemy_hp_after_turn_by_target']
+                if other_hp >= hp and all(a <= b for a, b in zip(other_enemies, enemies)):
+                    if other_hp > hp or any(a < b for a, b in zip(other_enemies, enemies)):
+                        dominated = True; break
+        if not dominated: kept.append(node)
+    return kept, len(nodes) - len(kept)
+
 def generate_plans(summary, actions, config=None):
     config = config or SearchConfig()
     started = time.monotonic()
     stats = dict(rule_version=rules.VERSION, beam_width=config.beam_width, expanded=0, continuation_nodes=0,
-                 deduplicated=0, semantic_deduplicated=0, planned_potion_uses=[],
+                 deduplicated=0, semantic_deduplicated=0, domination_pruned=0, planned_potion_uses=[],
+                 domination_scope='At most 32 deterministic ENDs; identical future resources, no retain/draw/generation/exhaust/end-turn triggers; all enemies survive; per-target HP comparison.',
                  depth=0, truncated=[], complete_enumeration=False)
     if 'player' not in summary:
         return [], stats
@@ -204,8 +264,10 @@ def generate_plans(summary, actions, config=None):
         if key in unique_nodes:
             stats['semantic_deduplicated'] += 1
         else: unique_nodes[key] = node
+    final_nodes, stats['domination_pruned'] = _prune_resource_dominated(
+        _diverse(list(unique_nodes.values()), config.beam_width))
     plans = []
-    for state, steps, out in _diverse(list(unique_nodes.values()), config.beam_width):
+    for state, steps, out in final_nodes:
         sequence = [{k: s[k] for k in ('kind', 'card_id', 'card_uuid', 'card_name', 'target_index', 'selection_uuid',
                     'potion_index', 'potion_id', 'subaction', 'potency') if k in s} for s in steps]
         plan_id = 'plan_' + fingerprint(sequence)[:12]

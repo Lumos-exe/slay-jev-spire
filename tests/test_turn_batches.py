@@ -192,3 +192,95 @@ def test_only_end_turn_requires_no_model_request(tmp_path):
     assert s.receive(raw) == ['STATE']
     assert s.receive(raw) == ['END']
     assert s.calls == 0
+
+
+def armaments_choice_nodes():
+    from tests.test_policy_quality import battle as quality_battle, card
+    from slay_jev_spire import rules
+    from slay_jev_spire.state import prepare_native_combat
+    strike = card('Strike_R', 1, damage=6,
+                  upgrade_preview={'cost':1, 'base_damage':9, 'base_block':0, 'magic_number':0, 'upgrades':1})
+    other = deepcopy(strike); other['uuid'] = 'other-strike'
+    raw = quality_battle([strike, other, card('Defend_R',1,'SKILL',block=5,target=False),
+                         card('Armaments',1,'SKILL',block=5,target=False)], enemy_hp=29)
+    raw['game_state']['combat_state']['monsters'][0]['move_adjusted_damage'] = 10
+    nodes = []
+    for attack in ('other-strike', 'Strike_R'):
+        state = rules.initial(prepare_native_combat(raw)[0]); steps = []
+        for ident, target, choice in [('Defend_R',None,None), ('Armaments',None,'Strike_R'), (attack,0,None)]:
+            step = next(s for s in rules.legal_steps(state) if s['card_uuid']==ident
+                        and s['target_index']==target and s['selection_uuid']==choice)
+            state = rules.play(state, step); steps.append(step)
+        nodes.append((state, steps+[{'kind':'end'}], rules.outcome(state)))
+    return raw, nodes
+
+
+def test_armaments_plays_the_upgraded_copy_when_future_resources_are_identical():
+    from slay_jev_spire.turn_planner import generate_plans, _prune_resource_dominated, _resource_signature
+    from slay_jev_spire.state import prepare_native_combat
+    raw, (bad, good) = armaments_choice_nodes()
+    assert bad[2]['enemy_hp_after_turn_by_target'] == [23]
+    assert good[2]['enemy_hp_after_turn_by_target'] == [20]
+    assert _resource_signature(bad) == _resource_signature(good) is not None
+    kept, count = _prune_resource_dominated([bad, good])
+    assert kept == [good] and count == 1
+    plans, stats = generate_plans(*prepare_native_combat(raw))
+    assert stats['domination_pruned'] > 0
+    assert any(p['outcome']['enemy_hp']==20 and p['outcome']['incoming_hp_loss']==0 for p in plans)
+    for plan in plans:
+        sequence = plan['sequence']
+        if len(sequence)==4 and sequence[0].get('card_id')=='Defend_R' and sequence[1].get('card_id')=='Armaments':
+            if sequence[1].get('selection_uuid') in {'Strike_R','other-strike'} and sequence[2].get('card_id')=='Strike_R':
+                assert sequence[1]['selection_uuid'] == sequence[2]['card_uuid']
+
+
+@pytest.mark.parametrize('difference', ['potion', 'energy', 'max_hp', 'power', 'counter',
+                                         'relic_counter', 'one_use_flag', 'retained_block', 'draw_pile'])
+def test_damage_does_not_dominate_different_future_resources(difference):
+    from slay_jev_spire.turn_planner import _prune_resource_dominated
+    _, (bad, good) = armaments_choice_nodes()
+    state, _, out = good
+    if difference == 'potion':
+        state['potions_used'] = out['potions_used'] = [{'potion_index':0,'potion_id':'Strength Potion'}]
+    elif difference == 'energy':
+        bad[0]['relics']['Ice Cream'] = state['relics']['Ice Cream'] = -1
+        state['energy'] += 1
+    elif difference == 'max_hp': state['max_hp'] += 1
+    elif difference == 'power': state['powers']['Strength'] = 1
+    elif difference == 'counter': state['attacks_this_combat'] += 1
+    elif difference == 'relic_counter': state['relics']['Happy Flower'] = 1
+    elif difference == 'one_use_flag': state['hand'][0]['free_to_play_once'] = True
+    elif difference == 'retained_block': out['retained_block'] += 1
+    elif difference == 'draw_pile': state['draw_pile'].append(state['hand'].pop())
+    assert _prune_resource_dominated([bad, good])[1] == 0
+
+
+@pytest.mark.parametrize('boundary', ['partial', 'known_top', 'retain', 'pyramid', 'sleep',
+                                       'status', 'ethereal', 'generation', 'draw', 'trigger'])
+def test_resource_dominance_leaves_information_and_end_turn_boundaries_alone(boundary):
+    from slay_jev_spire.turn_planner import _prune_resource_dominated
+    _, nodes = armaments_choice_nodes()
+    for state, _, out in nodes:
+        if boundary == 'partial': out['forecast_scope'] = 'partial'
+        elif boundary == 'known_top': state['known_top'] = ['known-card']
+        elif boundary == 'retain': state['hand'][0]['retain'] = True
+        elif boundary == 'pyramid': state['relics']['Runic Pyramid'] = -1
+        elif boundary == 'sleep': state['enemies'][0]['intent'] = 'SLEEP'
+        elif boundary == 'status': state['hand'][0]['type'] = 'STATUS'
+        elif boundary == 'ethereal': state['hand'][0]['ethereal'] = True
+        elif boundary == 'generation': state['generated'] = 1
+        elif boundary == 'draw': state['draws'] = 1
+        elif boundary == 'trigger': state['powers']['Plated Armor'] = 4
+    assert _prune_resource_dominated(nodes)[1] == 0
+
+
+def test_resource_dominance_compares_each_target_and_is_bounded():
+    from slay_jev_spire.turn_planner import _prune_resource_dominated
+    _, nodes = armaments_choice_nodes()
+    for state, _, out in nodes:
+        state['enemies'].append(deepcopy(state['enemies'][0]))
+    nodes[0][2]['enemy_hp_by_target'] = nodes[0][2]['enemy_hp_after_turn_by_target'] = [23,10]
+    nodes[1][2]['enemy_hp_by_target'] = nodes[1][2]['enemy_hp_after_turn_by_target'] = [20,11]
+    assert _prune_resource_dominated(nodes)[1] == 0  # Less total HP is not dominance.
+    _, nodes = armaments_choice_nodes()
+    assert _prune_resource_dominated([nodes[0]]*32 + [nodes[1]])[1] == 0
