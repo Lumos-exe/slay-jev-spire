@@ -603,7 +603,10 @@ class RunSession(SessionRuntime):
                 if plans:
                     if self.calls >= self.max_decisions:
                         return self._stop('decision_limit')
-                    selection = self._select_choice(raw, summary, plans + [a for a in candidates if a.get('kind') == 'potion'])
+                    planned_potions = set(search.get('planned_potion_uses', []))
+                    standalone_potions = [a for a in candidates if a.get('kind') == 'potion'
+                                          and a['id'] not in planned_potions]
+                    selection = self._select_choice(raw, summary, plans + standalone_potions)
                     source = 'selected_turn_plan'
                     if selection['action']['kind'] == 'turn_plan':
                         self.turn_queue = deepcopy(selection['action']['steps'])

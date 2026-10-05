@@ -70,6 +70,9 @@ def test_potion_slots_and_flags(raw):
     assert actions[0]['kind'] == 'potion'
     assert actions[0]['potion_id'] == 'Fire Potion'
     assert actions[0]['subaction'] == 'use'
+    assert actions[0]['potion']['name']=='Fire Potion'
+    actions[0]['potion']['name']='changed copy'
+    assert raw['game_state']['potions'][1]['name']=='Fire Potion'
     raw['game_state']['potions'][1]['can_use'] = 'true'
     with pytest.raises(UnsupportedState):
         potion_candidates(raw)

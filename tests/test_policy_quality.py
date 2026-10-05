@@ -472,3 +472,184 @@ def test_other_observed_neow_cards_have_explicit_effects():
     assert state['block']==6 and state['energy']==2
     assert state['checkpoint']=='card_choice' and state['generated']==1
     assert not state['uncertainties']
+
+
+def with_potion(raw, ident, potency, target=False):
+    raw['available_commands'].append('potion')
+    raw['game_state']['potions'].append(dict(id=ident, name=ident, potency=potency,
+        can_use=True, can_discard=True, requires_target=target))
+    return raw
+
+
+def test_enough_block_and_rampage_outrank_power_through_pollution():
+    # Round 09, Hexaghost turn 3: blocking 6 for 25 was chosen over 13 damage
+    # plus sufficient defense, while adding two Wounds to an already slow deck.
+    raw = battle([card('Rampage', 1, damage=8, magic=5), card('Defend_R', 1, 'SKILL', block=5, target=False),
+                  card('Iron Wave', 1, damage=5, block=5), card('Perfected Strike', 2, damage=6, magic=2),
+                  card('Power Through', 1, 'SKILL', block=15, target=False)], enemy_hp=229)
+    raw['game_state']['combat_state']['monsters'][0]['move_adjusted_damage'] = 6
+    plans, _ = generate_plans(*prepare_native_combat(raw))
+    clean = next(p for p in plans if p['outcome']['enemy_hp'] == 216 and p['outcome']['block'] == 10)
+    dirty = next(p for p in plans if p['outcome']['block'] == 25)
+    assert plans.index(clean) < plans.index(dirty)
+    assert clean['outcome']['incoming_hp_loss'] == dirty['outcome']['incoming_hp_loss'] == 0
+    assert dirty['outcome']['generated_card_counts'] == {'Wound': 2}
+    assert dirty['outcome']['generated_card_types'] == {'STATUS': 2}
+    assert dirty['outcome']['new_status_cards'] == dirty['outcome']['unexhausted_status_cards'] == 2
+    assert clean['outcome']['effective_block'] == dirty['outcome']['effective_block'] == 6
+    assert clean['outcome']['wasted_block'] == 4 and dirty['outcome']['wasted_block'] == 19
+
+
+def test_generated_status_exhaust_is_fuel_not_remaining_pollution():
+    raw = battle([card('Power Through', 1, 'SKILL', block=15, target=False),
+                  card('Second Wind', 1, 'SKILL', block=5, target=False)],
+                 powers=[{'id': 'Feel No Pain', 'name': 'Feel No Pain', 'amount': 3}])
+    state = transition(raw, [('Power Through', None, None), ('Second Wind', None, None)])
+    out = rules.outcome(state)
+    assert out['new_status_cards'] == 2 and out['unexhausted_status_cards'] == 0
+    assert out['exhausted_card_counts'] == {'Wound': 2}
+    assert out['block'] == 31
+
+
+@pytest.mark.parametrize('relics,powers,retained,wasted', [
+    ([], [], 0, 13), ([], [{'id': 'Barricade', 'name': 'Barricade', 'amount': 1}], 13, 0),
+    ([{'id': 'Calipers', 'counter': -1}], [], 0, 13)])
+def test_block_facts_respect_persistence(relics, powers, retained, wasted):
+    raw = battle([card('Impervious', 2, 'SKILL', block=25, target=False)], relics=relics, powers=powers)
+    out = rules.outcome(transition(raw, [('Impervious', None, None)]))
+    assert out['effective_block'] == 12 and out['remaining_block_after_turn'] == 13
+    assert out['retained_block'] == retained and out['wasted_block'] == wasted
+    assert out['exhausted_card_counts'] == {'Impervious': 1}
+
+
+def test_block_potion_body_slam_is_a_complete_plan_with_real_slot_binding():
+    from slay_jev_spire.turn_planner import bind_plan_step
+    raw = with_potion(battle([card('Body Slam', 1)], energy=1, enemy_hp=242), 'Block Potion', 12)
+    raw['game_state']['combat_state']['player']['block'] = 13
+    raw['game_state']['combat_state']['monsters'][0].update(move_adjusted_damage=7, move_hits=6)
+    summary, actions = prepare_native_combat(raw)
+    plans, stats = generate_plans(summary, actions)
+    combo = next(p for p in plans if [s['kind'] for s in p['sequence']] == ['potion', 'play', 'end'])
+    assert combo['outcome']['enemy_hp'] == 217 and combo['outcome']['incoming_hp_loss'] == 17
+    assert combo['outcome']['potions_used'] == [dict(potion_index=0, potion_id='Block Potion', target_index=None, potency=12)]
+    assert stats['planned_potion_uses'] == ['potion_use_0']
+    assert bind_plan_step(combo['steps'][0], summary, actions)['command'] == 'POTION USE 0'
+    assert bind_plan_step(combo['steps'][1], summary, actions) is None  # Not consumed yet.
+    after = deepcopy(raw)
+    after['game_state']['potions'][0].update(id='Potion Slot', name='Potion Slot', potency=0, can_use=False, can_discard=False)
+    after['game_state']['combat_state']['player']['block'] = 25
+    next_summary, next_actions = prepare_native_combat(after)
+    assert bind_plan_step(combo['steps'][1], next_summary, next_actions)['command'] == 'PLAY 1 0'
+    after['game_state']['potions'][0].update(id='Strength Potion', potency=2)
+    assert bind_plan_step(combo['steps'][1], *prepare_native_combat(after)) is None
+
+
+def test_weak_potion_then_end_saves_nine_hp_without_energy():
+    raw = with_potion(battle([], energy=0, enemy_hp=119), 'Weak Potion', 3, True)
+    raw['game_state']['combat_state']['player'].update(current_hp=25, block=15)
+    raw['game_state']['combat_state']['monsters'][0].update(id='SlimeBoss', max_hp=140, move_adjusted_damage=35)
+    plans, _ = generate_plans(*prepare_native_combat(raw))
+    assert plans[0]['sequence'][0]['potion_id'] == 'Weak Potion'
+    assert plans[0]['outcome']['player_hp_after_turn'] == 14
+    assert next(p for p in plans if not p['outcome']['potions_used'])['outcome']['player_hp_after_turn'] == 5
+
+
+def test_useless_block_potion_is_distinct_from_retaining_it():
+    raw = with_potion(battle([card('Burn', -2, 'STATUS', target=False)], energy=0), 'Block Potion', 12)
+    raw['game_state']['combat_state']['player']['block'] = 8
+    raw['game_state']['combat_state']['monsters'][0]['move_adjusted_damage'] = 6
+    plans, _ = generate_plans(*prepare_native_combat(raw))
+    kept, used = (next(p for p in plans if bool(p['outcome']['potions_used']) == use) for use in [False, True])
+    assert plans.index(kept) < plans.index(used)
+    assert kept['outcome']['incoming_hp_loss'] == used['outcome']['incoming_hp_loss'] == 0
+    assert used['outcome']['effective_block'] == 8 and used['outcome']['wasted_block'] == 12
+
+
+@pytest.mark.parametrize('ident,potency,target,card_id,energy,expected_hp,expected_loss', [
+    ('Strength Potion', 4, False, 'Strike_R', 1, 30, 12),
+    ('Dexterity Potion', 3, False, 'Iron Wave', 1, 35, 4),
+    ('Energy Potion', 2, False, 'Bash', 0, 32, 12),
+    ('Fire Potion', 17, True, 'Strike_R', 1, 17, 12),
+    ('Explosive Potion', 9, False, 'Strike_R', 1, 25, 12)])
+def test_potion_effects_use_native_potency_and_unlock_card_actions(ident, potency, target, card_id, energy, expected_hp, expected_loss):
+    cards = {'Strike_R': card('Strike_R', 1, damage=6), 'Iron Wave': card('Iron Wave', 1, damage=5, block=5),
+             'Bash': card('Bash', 2, damage=8, magic=2)}
+    raw = with_potion(battle([cards[card_id]], energy=energy), ident, potency, target)
+    if energy == 0: raw['game_state']['combat_state']['hand'][0]['is_playable'] = False
+    plans, _ = generate_plans(*prepare_native_combat(raw))
+    combo = next(p for p in plans if [s['kind'] for s in p['sequence']] == ['potion', 'play', 'end'])
+    assert combo['outcome']['enemy_hp'] == expected_hp and combo['outcome']['incoming_hp_loss'] == expected_loss
+
+
+def test_potion_prefixes_share_budget_and_do_not_chain_or_guess_unknowns():
+    raw = with_potion(with_potion(with_potion(battle([card('Strike_R', 1, damage=6)]), 'Block Potion', 12),
+                                           'Strength Potion', 2), 'PowerPotion', 1)
+    summary, actions = prepare_native_combat(raw)
+    plans, stats = generate_plans(summary, actions, SearchConfig(max_nodes=2))
+    assert stats['expanded'] + stats['continuation_nodes'] <= 2 and 'node_budget' in stats['truncated']
+    plans, stats = generate_plans(summary, actions)
+    assert 'potion_use_2' not in stats['planned_potion_uses']
+    assert all(sum(s['kind'] == 'potion' for s in p['sequence']) <= 1 for p in plans)
+    assert all(s['kind'] != 'potion' or i == 0 for p in plans for i, s in enumerate(p['sequence']))
+    raw['game_state']['relics'] = [{'id': 'Toy Ornithopter', 'counter': -1}]
+    plans, _ = generate_plans(*prepare_native_combat(raw))
+    used = [p for p in plans if p['outcome']['potions_used']]
+    assert used and all(p['checkpoint'] == 'unmodeled_potion_trigger' and len(p['sequence']) == 1 for p in used)
+    assert all(not p['outcome']['combat_won'] for p in used)
+
+
+def test_equivalent_card_instances_share_candidates_but_upgrades_do_not():
+    one = card('Strike_R', 1, damage=6)
+    two = deepcopy(one); two['uuid'] = 'other-strike'
+    raw = battle([one, two], energy=1)
+    plans, stats = generate_plans(*prepare_native_combat(raw))
+    assert len(plans) == 2 and stats['semantic_deduplicated'] >= 1
+    raw['game_state']['combat_state']['hand'][1]['upgrades'] = 1
+    plans, _ = generate_plans(*prepare_native_combat(raw))
+    assert len(plans) == 3
+
+
+def test_block_potion_is_not_card_block_under_no_block_frail_or_dexterity():
+    raw=with_potion(battle([card('Defend_R',1,'SKILL',block=5,target=False)],
+        powers=[{'id':'NoBlock','name':'NoBlock','amount':2},
+                {'id':'Dexterity','name':'Dexterity','amount':3},
+                {'id':'Frail','name':'Frail','amount':1}]),'Block Potion',12)
+    summary,actions=prepare_native_combat(raw)
+    initial=rules.initial(summary)
+    used=rules.use_potion(initial,rules.potion_steps(initial,summary,actions)[0])
+    assert used['block']==12
+    played=rules.play(used,next(s for s in rules.legal_steps(used) if s['card_uuid']=='Defend_R'))
+    assert played['block']==12
+
+
+def test_flame_barrier_reports_end_turn_damage_without_relabeling_card_damage():
+    # Round 11 D56: the two attackers lost 4 HP each after the chosen turn.
+    raw=battle([card('Flame Barrier',2,'SKILL',block=12,magic=4,target=False),
+                card('Defend_R',1,'SKILL',block=5,target=False)],enemy_hp=47,enemies=2)
+    enemies=raw['game_state']['combat_state']['monsters']
+    enemies[0]['current_hp']=12
+    for enemy in enemies:enemy['move_adjusted_damage']=6
+    out=rules.outcome(transition(raw,[('Flame Barrier',None,None),('Defend_R',None,None)]))
+    assert out['enemy_hp_by_target']==[12,47]
+    assert out['enemy_hp_after_turn_by_target']==[8,43]
+    assert out['incoming_hp_loss']==0
+    enemies[0]['intent']='UNKNOWN'
+    unknown=rules.outcome(transition(raw,[('Flame Barrier',None,None)]))
+    assert unknown['forecast_scope']=='partial' and unknown['enemy_hp_after_turn_by_target'] is None
+
+
+def test_retaliation_kill_stops_later_hits_but_does_not_claim_immediate_lethal():
+    raw=battle([],enemy_hp=3,powers=[{'id':'Flame Barrier','name':'Flame Barrier','amount':4}])
+    raw['game_state']['combat_state']['monsters'][0].update(move_adjusted_damage=6,move_hits=3)
+    out=rules.outcome(rules.initial(prepare_native_combat(raw)[0]))
+    assert out['incoming_hp_loss']==6 and out['enemy_hp_after_turn_by_target']==[0]
+    assert out['enemy_hp_by_target']==[3] and out['combat_won'] is False
+
+
+def test_potion_lethal_does_not_erase_safe_resource_preserving_end():
+    raw=with_potion(battle([],energy=0,enemy_hp=1),'Fire Potion',20,target=True)
+    raw['game_state']['combat_state']['monsters'][0]['intent']='BUFF'
+    plans,_=generate_plans(*prepare_native_combat(raw))
+    assert any(p['outcome']['combat_won'] and p['outcome']['potions_used'] for p in plans)
+    assert any(p['sequence']==[{'kind':'end'}] and not p['outcome']['potions_used']
+               and p['outcome']['incoming_hp_loss']==0 for p in plans)

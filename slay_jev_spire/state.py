@@ -145,7 +145,7 @@ def potion_candidates(raw):
             name = _string(potion['name'])
             if 'potion' not in commands:
                 continue
-            metadata = dict(kind='potion', potion_index=index, potion_id=potion_id)
+            metadata = dict(kind='potion', potion_index=index, potion_id=potion_id, potion=deepcopy(potion))
             if use:
                 if targeted and targets is None:
                     targets = _live(_enemies(game['combat_state']['monsters']))

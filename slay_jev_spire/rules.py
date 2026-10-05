@@ -4,9 +4,10 @@ Values come from game fields; the catalogue supplies identities and semantics,
 not legality. Unknown triggers are reported, never certified as a lethal line.
 """
 from copy import deepcopy
+from collections import Counter
 from math import floor
 
-VERSION = 'ironclad-2'
+VERSION = 'ironclad-3'
 # id: type, normal cost, base damage, base block, magic. Live fields override values.
 CARD_SPECS = {
     'Strike_R': ('ATTACK', 1, 6, 0, 0), 'Defend_R': ('SKILL', 1, 0, 5, 0),
@@ -120,6 +121,10 @@ def initial(summary):
                    damage=e.get('move_adjusted_damage'), base_damage=e.get('move_base_damage'), hits=e.get('move_hits'),
                    gone=e.get('is_gone', False), half_dead=e.get('half_dead', False)) for e in summary['enemies']],
                  checkpoint=None, uncertainties=[], notes=[], draws=0, generated=0, draw_prospects=[],
+                 generated_card_counts={}, generated_card_types={}, created_card_ids=[],
+                 blocked_total=0, potions_used=[],
+                 potions=[dict(potion_index=i, id=p['id'], potency=0 if p['id']=='Potion Slot' else p.get('potency'))
+                          for i, p in enumerate(summary.get('potions', []))],
                  plays=summary.get('turn_counters', {}).get('cards_played', 0),
                  attacks=summary.get('turn_counters', {}).get('attacks_played', 0),
                  skills=summary.get('turn_counters', {}).get('skills_played', 0),
@@ -127,6 +132,7 @@ def initial(summary):
                  attacks_this_combat=summary.get('turn_counters', {}).get('attacks_this_combat', 0))
     for pile in ('draw_pile', 'discard_pile', 'exhaust_pile'):
         state[pile] = [card_state(c) for c in summary.get(pile, [])]
+    state['initial_exhaust_ids'] = {c['uuid'] for c in state['exhaust_pile']}
     for card in summary['hand']:
         if card.get('native_values', {}).get('source') != 'game_card_fields':
             state['uncertainties'].append('missing_native_values:' + card['id'])
@@ -171,6 +177,63 @@ def live(state):
     return [i for i, e in enumerate(state['enemies']) if e['hp'] > 0 and not e['gone'] and not e['half_dead']]
 
 
+POTION_EFFECTS = {'Block Potion': 'block', 'Weak Potion': 'weak',
+                 'Strength Potion': 'strength', 'Dexterity Potion': 'dexterity',
+                 'Energy Potion': 'energy', 'Fire Potion': 'fire',
+                 'Explosive Potion': 'explosive'}
+
+
+def potion_steps(state, summary, actions):
+    """Only native legal uses with an observed potency can prefix a plan."""
+    result = []
+    for action in actions:
+        if action.get('kind') != 'potion' or action.get('subaction') != 'use': continue
+        index = action.get('potion_index')
+        if type(index) is not int or not 0 <= index < len(state['potions']): continue
+        potion = summary['potions'][index]
+        ident, potency = potion['id'], potion.get('potency')
+        if ident not in POTION_EFFECTS or action.get('potion_id') != ident: continue
+        if not potion.get('can_use') or type(potency) is not int or potency < 0: continue
+        target = action.get('target_index')
+        targeted = ident in {'Weak Potion', 'Fire Potion'}
+        if targeted != bool(potion.get('requires_target')): continue
+        if (targeted and target not in live(state)) or (not targeted and target is not None): continue
+        result.append(dict(kind='potion', potion_index=index, potion_id=ident,
+                           subaction='use', target_index=target, potency=potency,
+                           source_action_id=action['id']))
+    return result
+
+
+def use_potion(before, step):
+    state = deepcopy(before)
+    index, ident, amount = step['potion_index'], step['potion_id'], step['potency']
+    if state['potions_used'] or state['potions'][index]['id'] != ident:
+        raise ValueError('Potion prefix must consume one observed potion exactly once.')
+    state['potions'][index] = dict(potion_index=index, id='Potion Slot', potency=0)
+    state['potions_used'].append({k: step[k] for k in ('potion_index', 'potion_id', 'target_index', 'potency')})
+    effect = POTION_EFFECTS[ident]
+    if effect == 'block': gain_block(state, amount, False)
+    elif effect == 'energy': state['energy'] += amount
+    elif effect in {'strength', 'dexterity'}: apply_power(state, None, effect.title(), amount)
+    elif effect == 'weak': apply_power(state, step['target_index'], 'Weak', amount, True)
+    elif effect == 'fire': damage_enemy(state, step['target_index'], amount, False)
+    elif effect == 'explosive':
+        for target in live(state): damage_enemy(state, target, amount, False)
+    refresh_intents(state, before)
+    # Unknown relics may react to potion use (e.g. Toy Ornithopter). Observe
+    # their real result before following cards; never certify an assumed result.
+    if any(u.startswith('unmodeled_relic:') for u in state['uncertainties']):
+        checkpoint(state, 'unmodeled_potion_trigger')
+    return state
+
+
+def record_generation(state, ident, kind, count=1, uuid=None):
+    state['generated'] += count
+    for key, value in [('generated_card_counts', ident), ('generated_card_types', kind)]:
+        state[key][value] = state[key].get(value, 0) + count
+    if uuid is not None: state['created_card_ids'].append(uuid)
+
+
 def checkpoint(state, reason):
     state['checkpoint'] = state['checkpoint'] or reason
 
@@ -206,7 +269,7 @@ def draw(state, count):
 
 
 def gain_block(state, amount, modified=True):
-    if state['powers'].get('NoBlock'):
+    if modified and state['powers'].get('NoBlock'):
         return
     if modified:
         amount = floor(max(0, amount + state['powers'].get('Dexterity', 0)) *
@@ -232,6 +295,7 @@ def heal(state, amount):
 def lose_hp(state, amount, card=False, attack=False, blockable=False):
     if attack or blockable:
         blocked = min(amount, state['block']); state['block'] -= blocked; amount -= blocked
+        state['blocked_total'] += blocked
         if attack and 0 < amount <= 5 and 'Torii' in state['relics']:
             amount = 1
     if amount > 0 and 'TungstenRod' in state['relics']:
@@ -349,7 +413,7 @@ def exhaust_effects(state, card):
     if 'Charon\'s Ashes' in state['relics']:
         for i in live(state): damage_enemy(state, i, 3, False)
     if 'Dead Branch' in state['relics']:
-        state['generated'] += 1; checkpoint(state, 'dead_branch')
+        record_generation(state, 'UNKNOWN', 'UNKNOWN'); checkpoint(state, 'dead_branch')
     if card['id'] == 'Necronomicurse': checkpoint(state, 'curse_returns_to_hand')
 
 
@@ -493,13 +557,16 @@ def play(before, step):
     if ident == 'Rampage': card['base_damage'] += magic
     if ident == 'Anger':
         copy = deepcopy(card); copy['uuid'] = f'@generated:{state["plays"]}:Anger:0'; state['discard_pile'].append(copy)
+        record_generation(state, 'Anger', 'ATTACK', uuid=copy['uuid'])
     for name, pile, count in [('Wild Strike', 'draw_pile', 1), ('Reckless Charge', 'draw_pile', 1), ('Power Through', 'hand', 2), ('Immolate', 'discard_pile', 1)]:
         if ident == name:
             generated_id = 'Dazed' if ident == 'Reckless Charge' else 'Burn' if ident == 'Immolate' else 'Wound'
             for n in range(count):
                 destination = state['discard_pile'] if pile == 'hand' and len(state['hand']) >= 10 else state[pile]
-                destination.append(card_state(dict(id=generated_id, uuid=f'@generated:{state["plays"]}:{generated_id}:{n}', type='STATUS', cost=-2)))
-            state['generated'] += count
+                generated = card_state(dict(id=generated_id, uuid=f'@generated:{state["plays"]}:{generated_id}:{n}', type='STATUS', cost=-2,
+                                            ethereal=generated_id == 'Dazed'))
+                destination.append(generated)
+                record_generation(state, generated_id, 'STATUS', uuid=generated['uuid'])
             if pile == 'draw_pile': state['known_top'] = []
     if ident in {'Pommel Strike', 'Warcry', 'Battle Trance', 'Offering'}: draw(state, magic)
     if ident == 'Deep Breath':
@@ -520,9 +587,9 @@ def play(before, step):
     if ident == 'Dropkick' and was_vulnerable:
         state['energy'] += 1; draw(state, 1)
     if ident == 'Infernal Blade':
-        state['generated'] += 1; checkpoint(state, 'unknown_card')
+        record_generation(state, 'UNKNOWN', 'ATTACK'); checkpoint(state, 'unknown_card')
     if ident == 'Discovery':
-        state['generated'] += 1; checkpoint(state, 'card_choice')
+        record_generation(state, 'UNKNOWN', 'UNKNOWN'); checkpoint(state, 'card_choice')
         state['notes'].append({'effect':'choose_one_of_three_random_cards','cost_this_turn':0})
     if ident == 'Havoc' and (state['draw_pile'] or state['discard_pile']):
         checkpoint(state, 'autoplay_top_card')
@@ -550,7 +617,7 @@ def play(before, step):
                 for n in range(magic):
                     copy = deepcopy(chosen); copy['uuid'] = f'@generated:{state["plays"]}:{copy["id"]}:{n}'
                     (state['hand'] if len(state['hand']) < 10 else state['discard_pile']).append(copy)
-                state['generated'] += magic
+                    record_generation(state, copy['id'], copy['type'], uuid=copy['uuid'])
         if ident in {'True Grit', 'Burning Pact'}:
             if ident == 'True Grit' and not upgraded and len(state['hand']) > 1:
                 checkpoint(state, 'random_exhaust')
@@ -629,13 +696,30 @@ def outcome(state):
     standing_loss = max(0, state['hp'] - ended['hp']) if known else None
     if not reliable:
         known = False
+    remaining = ended['block'] if reliable and known else None
+    retained = (remaining if pp.get('Barricade') else max(0, remaining - 15)
+                if 'Calipers' in ended['relics'] else 0) if remaining is not None else None
+    created_ids = set(state['created_card_ids'])
+    pollution = Counter(c['type'] for pile in ('hand', 'draw_pile', 'discard_pile')
+                        for c in ended[pile] if c['uuid'] in created_ids and c['type'] in {'STATUS', 'CURSE'})
+    exhausted = Counter(c['id'] for c in ended['exhaust_pile'] if c['uuid'] not in state['initial_exhaust_ids'])
     return dict(enemy_hp=sum(enemy_hp), enemy_hp_by_target=enemy_hp,
+                enemy_hp_after_turn_by_target=[max(0,e['hp']) for e in ended['enemies']] if reliable and known else None,
                 incoming_hp_loss=max(0, state['hp'] - ended['hp']) if known else None,
                 player_hp_after_turn=ended['hp'] if known else None,
                 standing_hp_loss_estimate=standing_loss,
                 standing_estimate_scope='current known state only; excludes unresolved draws and effects',
                 self_damage=state['hp_spent'], healing=state['healing'], remaining_energy=state['energy'],
                 block=state['block'], powers=deepcopy(state['powers']), draw_count=state['draws'],
+                effective_block=ended['blocked_total'] if reliable and known else None,
+                wasted_block=remaining-retained if remaining is not None else None,
+                remaining_block_after_turn=remaining, retained_block=retained,
+                generated_card_counts=deepcopy(state['generated_card_counts']),
+                generated_card_types=deepcopy(state['generated_card_types']),
+                new_status_cards=state['generated_card_types'].get('STATUS', 0),
+                new_curse_cards=state['generated_card_types'].get('CURSE', 0),
+                unexhausted_status_cards=pollution['STATUS'], unexhausted_curse_cards=pollution['CURSE'],
+                exhausted_card_counts=dict(exhausted), potions_used=deepcopy(state['potions_used']),
                 draw_prospects=deepcopy(state['draw_prospects']),
                 generated_cards=state['generated'], exhaust_count=len(state['exhaust_pile']),
                 combat_won=won and state['hp'] > 0 and reliable,

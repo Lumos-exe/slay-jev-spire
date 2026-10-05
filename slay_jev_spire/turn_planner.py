@@ -23,6 +23,7 @@ def projection(state, counters=False):
     def card(c):
         return {k: c.get(k) for k in ('uuid', 'id', 'cost', 'upgrades', 'base_damage', 'base_block', 'magic_number')}
     result = {k: deepcopy(state[k]) for k in ('turn', 'energy', 'hp', 'max_hp', 'block', 'relics')}
+    result['potions'] = deepcopy(state['potions'])
     result['powers'] = {k: v for k, v in state['powers'].items() if v != 0}
     result['combust_hp_loss'] = state['combust_hp_loss']
     for pile in ('hand', 'draw_pile', 'discard_pile', 'exhaust_pile'):
@@ -52,12 +53,21 @@ def _quality(node):
         'Strength', 'Dexterity', 'Feel No Pain', 'Dark Embrace', 'Corruption', 'Barricade',
         'Demon Form', 'Metallicize', 'Rage', 'Juggernaut', 'Double Tap', 'Berserk'})
     useful_draws = sum(p['expected_affordable_draws'] for p in out.get('draw_prospects',[]))
-    setup += (3 + min(3,state['energy'])) * useful_draws + 2 * out['generated_cards']
+    # Copy count is not realized value: Anger in discard can dilute the deck.
+    # Copies that are useful now earn their actual damage/block in later steps.
+    setup += (3 + min(3,state['energy'])) * useful_draws
+    pollution = out.get('unexhausted_status_cards', 0) + out.get('unexhausted_curse_cards', 0)
+    # Status cards can be fuel in the right deck. They are never generically
+    # rewarded as though Wounds were extra attacks; modeled exhaust pays back
+    # through its actual draw/block effects and removes this cost.
+    resource_cost = 2 * pollution + 2 * len(out.get('potions_used', []))
+    waste = out.get('wasted_block') or 0
     kill = int(out['combat_won'])
-    enemy_hp = estimate['enemy_hp']
-    primary = (kill, hp > 0, -enemy_hp - 2.5 * loss + 2 * setup - state['hp_spent'])
-    return [primary + (-len(steps),), (kill, hp, -out['enemy_hp'], setup),
-            (kill, -enemy_hp, hp, setup), (kill, setup, hp, -enemy_hp)]
+    after_turn_hp = estimate.get('enemy_hp_after_turn_by_target')
+    enemy_hp = sum(after_turn_hp) if after_turn_hp is not None else estimate['enemy_hp']
+    primary = (kill, hp > 0, -enemy_hp - 2.5 * loss + 2 * setup - state['hp_spent'] - resource_cost - .05 * waste)
+    return [primary + (-len(steps),), (kill, hp, -enemy_hp, setup),
+            (kill, -enemy_hp, hp, setup-resource_cost), (kill, setup-resource_cost, hp, -enemy_hp)]
 
 
 def _known_hand_continuation(state, deadline, max_nodes):
@@ -72,8 +82,7 @@ def _known_hand_continuation(state, deadline, max_nodes):
         current,sequence=queue.pop();nodes+=1
         result=rules.outcome(current)
         if result['forecast_scope']!='deterministic': continue
-        loss=result['incoming_hp_loss']
-        score=(current['hp']-(loss or 0)>0, -result['enemy_hp']-2.5*(loss or 0))
+        score=_quality((current, sequence, result))[0]
         if best is None or score > best[0]: best=(score,sequence,result)
         for step in rules.legal_steps(current):
             child=rules.play(current,step)
@@ -101,14 +110,30 @@ def _diverse(nodes, width):
                 if len(selected) == width: return selected
     return selected
 
+
+def _equivalent_end_state(state, out):
+    """Deduplicate interchangeable card instances, never compare dominance.
+
+    Keep piles, costs, upgrades, counters, powers and every modeled outcome.
+    Information-boundary plans retain their exact sequence identity instead.
+    """
+    value = projection(state, True)
+    for pile in ('hand', 'draw_pile', 'discard_pile', 'exhaust_pile'):
+        cards = [{k: v for k, v in c.items() if k not in
+                  {'uuid', 'card_uuid', 'hand_index', 'play_index'}} for c in state[pile]]
+        value[pile] = sorted(cards, key=lambda c: json.dumps(c, sort_keys=True, ensure_ascii=False))
+    return fingerprint([value, out, state['known_top'], state['attacks_this_combat']])
+
 def generate_plans(summary, actions, config=None):
     config = config or SearchConfig()
     started = time.monotonic()
     stats = dict(rule_version=rules.VERSION, beam_width=config.beam_width, expanded=0, continuation_nodes=0,
-                 deduplicated=0, depth=0, truncated=[], complete_enumeration=False)
+                 deduplicated=0, semantic_deduplicated=0, planned_potion_uses=[],
+                 depth=0, truncated=[], complete_enumeration=False)
     if 'player' not in summary:
         return [], stats
     root = rules.initial(summary)
+    potion_prefixes = rules.potion_steps(root, summary, actions)
     use_counters = 'turn_counters' in summary
     root_legal = {(a.get('card_uuid'), a.get('target_index')) for a in actions if a.get('kind') == 'play'}
     beam = [(root, [], rules.outcome(root))]
@@ -125,17 +150,23 @@ def generate_plans(summary, actions, config=None):
             if depth == config.max_depth:
                 if rules.legal_steps(state): stats['truncated'].append('depth_budget')
                 continue
-            for step in rules.legal_steps(state):
-                if depth == 0 and (step['card_uuid'], step['target_index']) not in root_legal: continue
+            available = rules.legal_steps(state)
+            if not steps and state['hp'] > 0 and rules.live(state) and not state['checkpoint']:
+                available = potion_prefixes + available
+            for step in available:
+                is_potion = step['kind'] == 'potion'
+                if not steps and not is_potion and (step['card_uuid'], step['target_index']) not in root_legal: continue
                 if stats['expanded'] + stats['continuation_nodes'] >= config.max_nodes:
                     stats['truncated'].append('node_budget'); break
                 if (time.monotonic() - started) * 1000 >= config.max_ms:
                     stats['truncated'].append('time_budget'); break
-                child = rules.play(state, step)
+                child = rules.use_potion(state, step) if is_potion else rules.play(state, step)
                 stats['expanded'] += 1
                 bound = dict(step, expected_before=projection(state, use_counters))
-                card = next(c for c in state['hand'] if c['uuid'] == step['card_uuid'])
-                bound.update(card_id=card['id'], card_name=card.get('name', card['id']), checkpoint=child['checkpoint'])
+                if not is_potion:
+                    card = next(c for c in state['hand'] if c['uuid'] == step['card_uuid'])
+                    bound.update(card_id=card['id'], card_name=card.get('name', card['id']))
+                bound['checkpoint'] = child['checkpoint']
                 key = fingerprint([projection(child, True), child['known_top'], child['checkpoint'], step.get('selection_uuid')])
                 if key in visited:
                     stats['deduplicated'] += 1; continue
@@ -156,22 +187,36 @@ def generate_plans(summary, actions, config=None):
     nodes = list(terminal.values())
     lethal = [n for n in nodes if n[2]['combat_won']]
     if lethal:
-        safest = max(n[0]['hp'] for n in lethal)
-        nodes = [n for n in nodes if n[2]['combat_won'] or n[0]['hp'] > safest or n[2]['forecast_scope'] != 'deterministic']
+        def potion_cost(node):
+            return tuple((p['potion_index'],p['potion_id']) for p in node[2].get('potions_used',[]))
+        safest = {}
+        for node in lethal:
+            cost=potion_cost(node)
+            safest[cost]=max(safest.get(cost,0),node[0]['hp'])
+        # A consumable kill must not erase the option to save that potion.
+        nodes = [n for n in nodes if potion_cost(n) not in safest or n[2]['combat_won']
+                 or n[0]['hp'] > safest[potion_cost(n)] or n[2]['forecast_scope'] != 'deterministic']
     unique_nodes = {}
     for node in nodes:
         state, steps, out = node
-        key = fingerprint([{k: v for k, v in s.items() if k != 'expected_before'} for s in steps])
-        unique_nodes.setdefault(key, node)
+        key = (_equivalent_end_state(state, out) if out['forecast_scope'] == 'deterministic'
+               else fingerprint([{k: v for k, v in s.items() if k != 'expected_before'} for s in steps]))
+        if key in unique_nodes:
+            stats['semantic_deduplicated'] += 1
+        else: unique_nodes[key] = node
     plans = []
     for state, steps, out in _diverse(list(unique_nodes.values()), config.beam_width):
-        sequence = [{k: s[k] for k in ('kind', 'card_id', 'card_uuid', 'card_name', 'target_index', 'selection_uuid') if k in s} for s in steps]
+        sequence = [{k: s[k] for k in ('kind', 'card_id', 'card_uuid', 'card_name', 'target_index', 'selection_uuid',
+                    'potion_index', 'potion_id', 'subaction', 'potency') if k in s} for s in steps]
         plan_id = 'plan_' + fingerprint(sequence)[:12]
-        description = ' -> '.join('END' if s['kind'] == 'end' else s['card_name'] + (f' -> enemy {s["target_index"]}' if s.get('target_index') is not None else '') for s in sequence)
+        description = ' -> '.join('END' if s['kind'] == 'end' else
+            (('Use ' + s['potion_id']) if s['kind'] == 'potion' else s['card_name']) +
+            (f' -> enemy {s["target_index"]}' if s.get('target_index') is not None else '') for s in sequence)
         plans.append(dict(id=plan_id, kind='turn_plan', command='PLAN', hand_index=None,
                           card_uuid=None, target_index=None, steps=steps, sequence=sequence,
                           description=description, outcome=out, checkpoint=state['checkpoint'],
                           uncertainties=state['uncertainties'], notes=state['notes']))
+    stats['planned_potion_uses'] = sorted({s['source_action_id'] for p in plans for s in p['steps'] if s['kind'] == 'potion'})
     stats['truncated'] = sorted(set(stats['truncated']))
     stats['elapsed_ms'] = round((time.monotonic() - started) * 1000, 2)
     stats['candidates'] = len(plans)
@@ -198,6 +243,9 @@ def bind_plan_step(step, summary, actions):
         observed[pile].sort(key=lambda c:c['uuid'])
     if observed != expected:
         return None
+    if step['kind'] == 'potion':
+        return next((a for a in actions if a.get('kind') == 'potion' and all(a.get(k) == step.get(k)
+                    for k in ('potion_index', 'potion_id', 'subaction', 'target_index'))), None)
     action = next((a for a in actions if a.get('kind') == step['kind'] and
                  (step['kind'] == 'end' or (bindings.get(a.get('card_uuid'), a.get('card_uuid')) == step['card_uuid'] and a.get('target_index') == step.get('target_index')))), None)
     if action and step.get('selection_uuid'):

@@ -50,6 +50,45 @@ def test_one_selector_call_executes_three_attacks_and_end_with_rebound_indices(t
     assert len(calls) == 1 and s.calls == 1
 
 
+def test_one_choice_executes_potion_then_body_slam_and_end(tmp_path):
+    from tests.test_policy_quality import battle as quality_battle, card
+    raw=quality_battle([card('Body Slam',1)],energy=1,enemy_hp=40)
+    raw['available_commands'].append('potion')
+    game=raw['game_state'];combat=game['combat_state']
+    combat['player'].update(current_hp=79,block=13);game['current_hp']=79
+    combat['monsters'][0].update(move_base_damage=7,move_adjusted_damage=7,move_hits=6)
+    game['potions']=[{'id':'Block Potion','name':'Block Potion','potency':12,
+        'can_use':True,'can_discard':True,'requires_target':False},
+        {'id':'PowerPotion','name':'Power Potion','potency':1,
+        'can_use':True,'can_discard':True,'requires_target':False}]
+    seen=[]
+    def select(summary,actions):
+        seen.append(actions)
+        # Known use is represented by complete plans; unknown use still exists.
+        assert not any(a.get('kind')=='potion' and a.get('potion_id')=='Block Potion'
+                       and a.get('subaction')=='use' for a in actions)
+        assert any(a.get('kind')=='potion' and a.get('potion_id')=='PowerPotion'
+                   and a.get('subaction')=='use' for a in actions)
+        chosen=next(a for a in actions if a.get('kind')=='turn_plan'
+                    and [s['kind'] for s in a['sequence']]==['potion','play','end'])
+        assert chosen['outcome']['enemy_hp']==15
+        assert chosen['outcome']['incoming_hp_loss']==17
+        return choose_mock(summary,[chosen])
+    session=RunSession(tmp_path,mode='mock',selector=select,catalog={})
+    assert session.receive(raw)==['STATE']
+    assert session.receive(raw)==['POTION USE 0'];session.command_sent('POTION USE 0')
+    game['potions'][0]={'id':'Potion Slot'}  # Empty slots need no potency field.
+    combat['player']['block']=25
+    combat['hand'][0]['native_values'].update(base_damage=25,damage=25)
+    assert session.receive(raw)==['STATE']
+    assert session.receive(raw)==['PLAY 1 0'];session.command_sent('PLAY 1 0')
+    combat['discard_pile'].append(combat['hand'].pop())
+    combat['player']['energy']=0;combat['monsters'][0]['current_hp']=15
+    assert session.receive(raw)==['STATE']
+    assert session.receive(raw)==['END']
+    assert session.calls==1 and len(seen)==1
+
+
 def test_unexpected_state_invalidates_queue_and_replans(tmp_path):
     calls = []
     def select(summary, actions):
