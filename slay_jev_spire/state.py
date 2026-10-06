@@ -55,7 +55,6 @@ def _powers(values):
         _string(item['id'])
         _string(item['name'])
         _integer(item['amount'], None)
-        item['effect'] = 'unknown'
         result.append(item)
     return result
 
@@ -70,7 +69,6 @@ def _orbs(values):
         for field in ('evoke_amount', 'passive_amount'):
             if field in orb:
                 _integer(orb[field], None)
-        orb['effect'] = 'unknown'
         result.append(orb)
     return result
 
@@ -88,7 +86,6 @@ def _cards(values, hand=False):
         _integer(card['upgrades'])
         for field in ('is_playable', 'has_target', 'exhausts', 'ethereal'):
             _boolean(card[field])
-        card['effect'] = 'unknown'
         if hand:
             card.update(hand_index=index, play_index=index + 1, card_uuid=card['uuid'])
         result.append(card)
@@ -181,9 +178,15 @@ def prepare_native_combat(raw):
         summary = dict(turn=_integer(combat['turn'], 1), player=player,
                        hand=_cards(combat['hand'], True), enemies=_enemies(combat['monsters']),
                        draw_order_known=False)
+        if 'jev_identity' in game:
+            from .identity import GameIdentity
+            GameIdentity.from_game(game)
+            summary['identity'] = deepcopy(game['jev_identity'])
         _require(len({c['uuid'] for c in summary['hand']}) == len(summary['hand']), 'Duplicate hand UUID.')
         if 'turn_counters' in combat:
             summary['turn_counters'] = deepcopy(combat['turn_counters'])
+        for field in ('energy_per_turn','draw_per_turn'):
+            if field in combat: summary[field]=_integer(combat[field])
         for pile in ('draw_pile', 'discard_pile', 'exhaust_pile'):
             summary[pile] = sorted(_cards(combat.get(pile, [])), key=lambda c: c['uuid'])
         summary['relics'] = [_metadata(r) for r in _list(game.get('relics', []))]
@@ -191,8 +194,10 @@ def prepare_native_combat(raw):
             _string(relic['id'])
             if 'counter' in relic:
                 _integer(relic['counter'], None)
-            relic['effect'] = 'unknown'
         summary['potions'] = deepcopy(_list(game.get('potions', [])))
+        if 'gold' in game: summary['gold']=_integer(game['gold'])
+        from .monsters import encounter_context
+        summary['encounter_mechanics']=encounter_context(summary['enemies'])
         actions = []
         if 'play' in commands:
             for card in summary['hand']:
@@ -203,7 +208,7 @@ def prepare_native_combat(raw):
                     if target is not None and 'valid_target_indices' in card and target not in card['valid_target_indices']:
                         continue
                     command = f"PLAY {card['play_index']}" + (f' {target}' if target is not None else '')
-                    actions.append(_action(command, f"{card['name']}: {card['effect']}", kind='play', hand_index=card['hand_index'], card_uuid=card['uuid'], target_index=target))
+                    actions.append(_action(command, card['name'], kind='play', hand_index=card['hand_index'], card_uuid=card['uuid'], target_index=target))
         if 'end' in commands:
             actions.append(_action('END', 'End turn', kind='end'))
         actions.extend(potion_candidates(raw))
@@ -244,6 +249,14 @@ def enrich_summary(summary: dict, catalog: dict) -> dict:
             identifier = value.get('id')
             if isinstance(identifier, str) and category in ('cards', 'powers', 'relics'):
                 entry = catalog.get(category, {}).get(identifier, {})
+                definition=entry.get('NATIVE_DEFINITION')
+                if isinstance(definition,dict):
+                    value['catalog_ref']={'kind':category,'id':identifier,'version':entry.get('CATALOG_VERSION')}
+                    if 'native_mechanics' not in value and 'native_mechanics' in definition:
+                        value['native_mechanics']=deepcopy(definition['native_mechanics'])
+                    for field in ('tags','keywords','keyword_descriptions'):
+                        if field not in value and field in definition:
+                            value[field]=deepcopy(definition[field])
                 description = entry.get('UPGRADE_DESCRIPTION') if category == 'cards' and type(value.get('upgrades')) is int and value['upgrades'] > 0 else None
                 description = description or entry.get('DESCRIPTION') or entry.get('DESCRIPTIONS')
                 if isinstance(value.get('native_description'), str) and value['native_description']:
@@ -263,6 +276,7 @@ def enrich_summary(summary: dict, catalog: dict) -> dict:
                 value['description'] = description if isinstance(description, str) else 'unknown'
                 value['dynamic_values_unknown'] = bool(re.search(r'![^!]+!|%(?:\d+\$)?[-+ #0]*\d*(?:\.\d+)?[a-zA-Z]|\{\d+(?:[^}]*)\}', value['description']))
             for key, child in list(value.items()):
+                if key=='catalog_ref':continue  # A reference is not another card/relic object.
                 kind = 'powers' if key == 'powers' else 'relics' if key in ('relics', 'relic') else 'cards' if key in ('hand', 'deck', 'cards', 'card', 'draw_pile', 'discard_pile', 'exhaust_pile', 'selected_cards') else category
                 visit(child, kind)
     visit(result)

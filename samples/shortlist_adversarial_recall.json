@@ -1,0 +1,753 @@
+[
+  {
+    "name": "louse_same_target_bash_strike",
+    "run_id": "f6440f3d-e8d1-4fc9-8938-eb5b27211160",
+    "step": 40,
+    "request_id": "a71dd596-8f24-4651-a471-103a6cdccc7b",
+    "witness": {
+      "ordered_cards": [
+        "Bash",
+        "Strike_R"
+      ],
+      "target": 1
+    },
+    "scope": "Mechanical projection of a recorded miss; full evidence is retained in logs/reference09-recall-misses.json.",
+    "summary": {
+      "turn": 1,
+      "identity": {
+        "room_id": "f38b6723-fc89-414a-a9c5-811b2e51cb19",
+        "run_id": "f6440f3d-e8d1-4fc9-8938-eb5b27211160",
+        "encounter_id": "30cb4629-7f54-4a9f-b393-23d8deef1129",
+        "version": 1
+      },
+      "player": {
+        "orbs": [],
+        "current_hp": 78,
+        "block": 0,
+        "max_hp": 80,
+        "powers": [],
+        "energy": 3
+      },
+      "hand": [
+        {
+          "uuid": "08616e7f-9ff9-4e96-a453-9d0efdd43969",
+          "id": "Strike_R",
+          "name": "打击",
+          "cost": 1,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1,
+            "free_to_play": false
+          }
+        },
+        {
+          "uuid": "bb957a2f-8156-41f7-9183-d181b1b8d7bd",
+          "id": "Defend_R",
+          "name": "防御",
+          "cost": 1,
+          "has_target": false,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1,
+            "free_to_play": false
+          }
+        },
+        {
+          "uuid": "20df09bb-ceff-4320-be68-ab3c0112b95e",
+          "id": "Defend_R",
+          "name": "防御",
+          "cost": 1,
+          "has_target": false,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1,
+            "free_to_play": false
+          }
+        },
+        {
+          "uuid": "cdf406f8-3129-4305-9beb-b02e321ecb58",
+          "id": "Bash",
+          "name": "痛击",
+          "cost": 2,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 2,
+            "free_to_play": false
+          }
+        },
+        {
+          "uuid": "71b603f1-d791-47b0-b9ec-72361d97fef3",
+          "id": "Strike_R",
+          "name": "打击",
+          "cost": 1,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1,
+            "free_to_play": false
+          }
+        }
+      ],
+      "enemies": [
+        {
+          "id": "FuzzyLouseNormal",
+          "entity_id": "c6486f9b-8247-4409-bc8e-236ad97dec4a",
+          "current_hp": 14,
+          "max_hp": 14,
+          "block": 0,
+          "intent": "ATTACK",
+          "move_id": 3,
+          "is_gone": false,
+          "half_dead": false
+        },
+        {
+          "id": "FuzzyLouseNormal",
+          "entity_id": "9aca95b0-da33-49e9-bc1b-4c8aa2ff1b19",
+          "current_hp": 12,
+          "max_hp": 12,
+          "block": 0,
+          "intent": "BUFF",
+          "move_id": 4,
+          "is_gone": false,
+          "half_dead": false
+        }
+      ],
+      "relics": [
+        {
+          "id": "Burning Blood"
+        }
+      ],
+      "potions": [
+        {
+          "id": "Block Potion",
+          "potency": 12,
+          "can_use": true,
+          "can_discard": true,
+          "requires_target": false
+        },
+        {
+          "id": "DistilledChaos",
+          "potency": 3,
+          "can_use": true,
+          "can_discard": true,
+          "requires_target": false
+        },
+        {
+          "id": "LiquidBronze",
+          "potency": 3,
+          "can_use": true,
+          "can_discard": true,
+          "requires_target": false
+        }
+      ]
+    },
+    "actions": [
+      {
+        "id": "play_1_0",
+        "kind": "play",
+        "command": "PLAY 1 0",
+        "card_uuid": "08616e7f-9ff9-4e96-a453-9d0efdd43969",
+        "target_index": 0
+      },
+      {
+        "id": "play_1_1",
+        "kind": "play",
+        "command": "PLAY 1 1",
+        "card_uuid": "08616e7f-9ff9-4e96-a453-9d0efdd43969",
+        "target_index": 1
+      },
+      {
+        "id": "play_2",
+        "kind": "play",
+        "command": "PLAY 2",
+        "card_uuid": "bb957a2f-8156-41f7-9183-d181b1b8d7bd",
+        "target_index": null
+      },
+      {
+        "id": "play_3",
+        "kind": "play",
+        "command": "PLAY 3",
+        "card_uuid": "20df09bb-ceff-4320-be68-ab3c0112b95e",
+        "target_index": null
+      },
+      {
+        "id": "play_4_0",
+        "kind": "play",
+        "command": "PLAY 4 0",
+        "card_uuid": "cdf406f8-3129-4305-9beb-b02e321ecb58",
+        "target_index": 0
+      },
+      {
+        "id": "play_4_1",
+        "kind": "play",
+        "command": "PLAY 4 1",
+        "card_uuid": "cdf406f8-3129-4305-9beb-b02e321ecb58",
+        "target_index": 1
+      },
+      {
+        "id": "play_5_0",
+        "kind": "play",
+        "command": "PLAY 5 0",
+        "card_uuid": "71b603f1-d791-47b0-b9ec-72361d97fef3",
+        "target_index": 0
+      },
+      {
+        "id": "play_5_1",
+        "kind": "play",
+        "command": "PLAY 5 1",
+        "card_uuid": "71b603f1-d791-47b0-b9ec-72361d97fef3",
+        "target_index": 1
+      },
+      {
+        "id": "end",
+        "kind": "end",
+        "command": "END",
+        "card_uuid": null,
+        "target_index": null
+      },
+      {
+        "id": "potion_use_0",
+        "kind": "potion",
+        "command": "POTION USE 0",
+        "card_uuid": null,
+        "target_index": null,
+        "potion_index": 0,
+        "potion_id": "Block Potion",
+        "subaction": "use"
+      },
+      {
+        "id": "potion_discard_0",
+        "kind": "potion",
+        "command": "POTION DISCARD 0",
+        "card_uuid": null,
+        "target_index": null,
+        "potion_index": 0,
+        "potion_id": "Block Potion",
+        "subaction": "discard"
+      },
+      {
+        "id": "potion_use_1",
+        "kind": "potion",
+        "command": "POTION USE 1",
+        "card_uuid": null,
+        "target_index": null,
+        "potion_index": 1,
+        "potion_id": "DistilledChaos",
+        "subaction": "use"
+      },
+      {
+        "id": "potion_discard_1",
+        "kind": "potion",
+        "command": "POTION DISCARD 1",
+        "card_uuid": null,
+        "target_index": null,
+        "potion_index": 1,
+        "potion_id": "DistilledChaos",
+        "subaction": "discard"
+      },
+      {
+        "id": "potion_use_2",
+        "kind": "potion",
+        "command": "POTION USE 2",
+        "card_uuid": null,
+        "target_index": null,
+        "potion_index": 2,
+        "potion_id": "LiquidBronze",
+        "subaction": "use"
+      },
+      {
+        "id": "potion_discard_2",
+        "kind": "potion",
+        "command": "POTION DISCARD 2",
+        "card_uuid": null,
+        "target_index": null,
+        "potion_index": 2,
+        "potion_id": "LiquidBronze",
+        "subaction": "discard"
+      }
+    ]
+  },
+  {
+    "name": "fungi_same_target_perfected_strike",
+    "run_id": "f6440f3d-e8d1-4fc9-8938-eb5b27211160",
+    "step": 50,
+    "request_id": "747c12d7-f1c6-4c45-b275-d6aa6948c3b1",
+    "witness": {
+      "ordered_cards": [
+        "Perfected Strike",
+        "Strike_R"
+      ],
+      "target": 1
+    },
+    "scope": "Mechanical projection of a recorded miss; full evidence is retained in logs/reference09-recall-misses.json.",
+    "summary": {
+      "turn": 1,
+      "identity": {
+        "room_id": "66f165de-33d0-48d4-b02e-26cbb141c693",
+        "run_id": "f6440f3d-e8d1-4fc9-8938-eb5b27211160",
+        "encounter_id": "e0d18b6f-d623-4ff7-8107-7a2634795c94",
+        "version": 1
+      },
+      "player": {
+        "orbs": [],
+        "current_hp": 78,
+        "block": 0,
+        "max_hp": 80,
+        "powers": [],
+        "energy": 3
+      },
+      "hand": [
+        {
+          "uuid": "17da76ee-0e62-44f8-b968-c00a46b0b8da",
+          "id": "Defend_R",
+          "name": "防御",
+          "cost": 1,
+          "has_target": false,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1,
+            "free_to_play": false
+          }
+        },
+        {
+          "uuid": "a305963f-d252-4587-964f-cd821fb6f061",
+          "id": "Perfected Strike",
+          "name": "完美打击",
+          "cost": 2,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 2,
+            "free_to_play": false
+          }
+        },
+        {
+          "uuid": "262ea887-2b7b-47d7-85d4-ff7cb7b4e82b",
+          "id": "Sword Boomerang",
+          "name": "飞剑回旋镖",
+          "cost": 1,
+          "has_target": false,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1,
+            "free_to_play": false
+          }
+        },
+        {
+          "uuid": "8f7ee25c-4952-4b92-ac22-b9b57b118b5b",
+          "id": "Defend_R",
+          "name": "防御",
+          "cost": 1,
+          "has_target": false,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1,
+            "free_to_play": false
+          }
+        },
+        {
+          "uuid": "7aadad6f-0c11-4e8f-9e44-73bce988c121",
+          "id": "Strike_R",
+          "name": "打击",
+          "cost": 1,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1,
+            "free_to_play": false
+          }
+        }
+      ],
+      "enemies": [
+        {
+          "id": "FungiBeast",
+          "entity_id": "cdeec36b-a0e6-4ccf-90a0-b6ec7348e12d",
+          "current_hp": 26,
+          "max_hp": 26,
+          "block": 0,
+          "intent": "ATTACK",
+          "move_id": 1,
+          "is_gone": false,
+          "half_dead": false
+        },
+        {
+          "id": "FungiBeast",
+          "entity_id": "bb913937-5c67-4397-8e21-f6e52eb6bb1a",
+          "current_hp": 24,
+          "max_hp": 24,
+          "block": 0,
+          "intent": "ATTACK",
+          "move_id": 1,
+          "is_gone": false,
+          "half_dead": false
+        }
+      ],
+      "relics": [
+        {
+          "id": "Burning Blood"
+        }
+      ],
+      "potions": [
+        {
+          "id": "Block Potion",
+          "potency": 12,
+          "can_use": true,
+          "can_discard": true,
+          "requires_target": false
+        },
+        {
+          "id": "DistilledChaos",
+          "potency": 3,
+          "can_use": true,
+          "can_discard": true,
+          "requires_target": false
+        },
+        {
+          "id": "LiquidBronze",
+          "potency": 3,
+          "can_use": true,
+          "can_discard": true,
+          "requires_target": false
+        }
+      ]
+    },
+    "actions": [
+      {
+        "id": "play_1",
+        "kind": "play",
+        "command": "PLAY 1",
+        "card_uuid": "17da76ee-0e62-44f8-b968-c00a46b0b8da",
+        "target_index": null
+      },
+      {
+        "id": "play_2_0",
+        "kind": "play",
+        "command": "PLAY 2 0",
+        "card_uuid": "a305963f-d252-4587-964f-cd821fb6f061",
+        "target_index": 0
+      },
+      {
+        "id": "play_2_1",
+        "kind": "play",
+        "command": "PLAY 2 1",
+        "card_uuid": "a305963f-d252-4587-964f-cd821fb6f061",
+        "target_index": 1
+      },
+      {
+        "id": "play_3",
+        "kind": "play",
+        "command": "PLAY 3",
+        "card_uuid": "262ea887-2b7b-47d7-85d4-ff7cb7b4e82b",
+        "target_index": null
+      },
+      {
+        "id": "play_4",
+        "kind": "play",
+        "command": "PLAY 4",
+        "card_uuid": "8f7ee25c-4952-4b92-ac22-b9b57b118b5b",
+        "target_index": null
+      },
+      {
+        "id": "play_5_0",
+        "kind": "play",
+        "command": "PLAY 5 0",
+        "card_uuid": "7aadad6f-0c11-4e8f-9e44-73bce988c121",
+        "target_index": 0
+      },
+      {
+        "id": "play_5_1",
+        "kind": "play",
+        "command": "PLAY 5 1",
+        "card_uuid": "7aadad6f-0c11-4e8f-9e44-73bce988c121",
+        "target_index": 1
+      },
+      {
+        "id": "end",
+        "kind": "end",
+        "command": "END",
+        "card_uuid": null,
+        "target_index": null
+      },
+      {
+        "id": "potion_use_0",
+        "kind": "potion",
+        "command": "POTION USE 0",
+        "card_uuid": null,
+        "target_index": null,
+        "potion_index": 0,
+        "potion_id": "Block Potion",
+        "subaction": "use"
+      },
+      {
+        "id": "potion_discard_0",
+        "kind": "potion",
+        "command": "POTION DISCARD 0",
+        "card_uuid": null,
+        "target_index": null,
+        "potion_index": 0,
+        "potion_id": "Block Potion",
+        "subaction": "discard"
+      },
+      {
+        "id": "potion_use_1",
+        "kind": "potion",
+        "command": "POTION USE 1",
+        "card_uuid": null,
+        "target_index": null,
+        "potion_index": 1,
+        "potion_id": "DistilledChaos",
+        "subaction": "use"
+      },
+      {
+        "id": "potion_discard_1",
+        "kind": "potion",
+        "command": "POTION DISCARD 1",
+        "card_uuid": null,
+        "target_index": null,
+        "potion_index": 1,
+        "potion_id": "DistilledChaos",
+        "subaction": "discard"
+      },
+      {
+        "id": "potion_use_2",
+        "kind": "potion",
+        "command": "POTION USE 2",
+        "card_uuid": null,
+        "target_index": null,
+        "potion_index": 2,
+        "potion_id": "LiquidBronze",
+        "subaction": "use"
+      },
+      {
+        "id": "potion_discard_2",
+        "kind": "potion",
+        "command": "POTION DISCARD 2",
+        "card_uuid": null,
+        "target_index": null,
+        "potion_index": 2,
+        "potion_id": "LiquidBronze",
+        "subaction": "discard"
+      }
+    ]
+  },
+  {
+    "name": "slaver_bash_headbutt",
+    "run_id": "f6440f3d-e8d1-4fc9-8938-eb5b27211160",
+    "step": 63,
+    "request_id": "a2f85af4-f2a5-44f9-9261-3a5b5ae6188e",
+    "witness": {
+      "ordered_cards": [
+        "Bash",
+        "Headbutt"
+      ],
+      "target": 0
+    },
+    "scope": "Mechanical projection of a recorded miss; full evidence is retained in logs/reference09-recall-misses.json.",
+    "summary": {
+      "turn": 1,
+      "identity": {
+        "room_id": "83003b53-1102-4d43-8a2e-dae830f05148",
+        "run_id": "f6440f3d-e8d1-4fc9-8938-eb5b27211160",
+        "encounter_id": "04476101-552c-4b6f-8f71-110185f2018f",
+        "version": 1
+      },
+      "player": {
+        "orbs": [],
+        "current_hp": 80,
+        "block": 0,
+        "max_hp": 80,
+        "powers": [],
+        "energy": 3
+      },
+      "hand": [
+        {
+          "uuid": "08616e7f-9ff9-4e96-a453-9d0efdd43969",
+          "id": "Strike_R",
+          "name": "打击",
+          "cost": 1,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1,
+            "free_to_play": false
+          }
+        },
+        {
+          "uuid": "0b6e35f2-5d8c-424e-b3eb-0c0232ed9b62",
+          "id": "Headbutt",
+          "name": "头槌",
+          "cost": 1,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1,
+            "free_to_play": false
+          }
+        },
+        {
+          "uuid": "fea245f4-bd38-4427-adf3-f369e889689f",
+          "id": "Strike_R",
+          "name": "打击",
+          "cost": 1,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1,
+            "free_to_play": false
+          }
+        },
+        {
+          "uuid": "cdf406f8-3129-4305-9beb-b02e321ecb58",
+          "id": "Bash",
+          "name": "痛击",
+          "cost": 2,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 2,
+            "free_to_play": false
+          }
+        },
+        {
+          "uuid": "7aadad6f-0c11-4e8f-9e44-73bce988c121",
+          "id": "Strike_R",
+          "name": "打击",
+          "cost": 1,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1,
+            "free_to_play": false
+          }
+        }
+      ],
+      "enemies": [
+        {
+          "id": "SlaverBlue",
+          "entity_id": "4bdae068-8336-4be4-a6fe-ada7ca3f5fb8",
+          "current_hp": 50,
+          "max_hp": 50,
+          "block": 0,
+          "intent": "ATTACK_DEBUFF",
+          "move_id": 4,
+          "is_gone": false,
+          "half_dead": false
+        }
+      ],
+      "relics": [
+        {
+          "id": "Burning Blood"
+        }
+      ],
+      "potions": [
+        {
+          "id": "Potion Slot",
+          "potency": 0,
+          "can_use": false,
+          "can_discard": false,
+          "requires_target": false
+        },
+        {
+          "id": "DistilledChaos",
+          "potency": 3,
+          "can_use": true,
+          "can_discard": true,
+          "requires_target": false
+        },
+        {
+          "id": "LiquidBronze",
+          "potency": 3,
+          "can_use": true,
+          "can_discard": true,
+          "requires_target": false
+        }
+      ]
+    },
+    "actions": [
+      {
+        "id": "play_1_0",
+        "kind": "play",
+        "command": "PLAY 1 0",
+        "card_uuid": "08616e7f-9ff9-4e96-a453-9d0efdd43969",
+        "target_index": 0
+      },
+      {
+        "id": "play_2_0",
+        "kind": "play",
+        "command": "PLAY 2 0",
+        "card_uuid": "0b6e35f2-5d8c-424e-b3eb-0c0232ed9b62",
+        "target_index": 0
+      },
+      {
+        "id": "play_3_0",
+        "kind": "play",
+        "command": "PLAY 3 0",
+        "card_uuid": "fea245f4-bd38-4427-adf3-f369e889689f",
+        "target_index": 0
+      },
+      {
+        "id": "play_4_0",
+        "kind": "play",
+        "command": "PLAY 4 0",
+        "card_uuid": "cdf406f8-3129-4305-9beb-b02e321ecb58",
+        "target_index": 0
+      },
+      {
+        "id": "play_5_0",
+        "kind": "play",
+        "command": "PLAY 5 0",
+        "card_uuid": "7aadad6f-0c11-4e8f-9e44-73bce988c121",
+        "target_index": 0
+      },
+      {
+        "id": "end",
+        "kind": "end",
+        "command": "END",
+        "card_uuid": null,
+        "target_index": null
+      },
+      {
+        "id": "potion_use_1",
+        "kind": "potion",
+        "command": "POTION USE 1",
+        "card_uuid": null,
+        "target_index": null,
+        "potion_index": 1,
+        "potion_id": "DistilledChaos",
+        "subaction": "use"
+      },
+      {
+        "id": "potion_discard_1",
+        "kind": "potion",
+        "command": "POTION DISCARD 1",
+        "card_uuid": null,
+        "target_index": null,
+        "potion_index": 1,
+        "potion_id": "DistilledChaos",
+        "subaction": "discard"
+      },
+      {
+        "id": "potion_use_2",
+        "kind": "potion",
+        "command": "POTION USE 2",
+        "card_uuid": null,
+        "target_index": null,
+        "potion_index": 2,
+        "potion_id": "LiquidBronze",
+        "subaction": "use"
+      },
+      {
+        "id": "potion_discard_2",
+        "kind": "potion",
+        "command": "POTION DISCARD 2",
+        "card_uuid": null,
+        "target_index": null,
+        "potion_index": 2,
+        "potion_id": "LiquidBronze",
+        "subaction": "discard"
+      }
+    ]
+  }
+]

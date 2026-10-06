@@ -14,7 +14,7 @@ def test_main_menu_waits_without_budget_or_timeout_then_accepts_run(tmp_path):
     assert s.receive(menu) == []
     assert not s.stopped and s.calls == 0
     assert s.receive(reward()) == ['STATE']
-    assert s.calls == 0  # Guaranteed gold pickup does not call the model.
+    assert s.calls == 1  # Resource choices use the model decision boundary.
 
 
 def test_main_menu_wait_still_honors_pause(tmp_path):
@@ -71,13 +71,13 @@ def send(s,r):
 
 
 def test_reward_confirmation_ignores_unrelated_change_and_correlates(tmp_path):
-    s=session(tmp_path,max_decisions=1); r=reward()
+    s=session(tmp_path,max_decisions=2); r=reward()
     assert send(s,r)=='CHOOSE 0'
     other=copy.deepcopy(r); other['game_state']['map']=[]
     assert s.receive(other)==['STATE'] and not s.stopped
     after=copy.deepcopy(r); g=after['game_state']; g['gold']+=13
     g['screen_state']['rewards'].pop(0); g['choice_list'].pop(0)
-    assert s.receive(after)==['STATE'] and not s.stopped and s.calls == 0
+    assert s.receive(after)==['STATE'] and not s.stopped and s.calls == 2
     records=[json.loads(x) for x in (tmp_path/'runs.jsonl').read_text(encoding='utf-8').splitlines()]
     confirmed=next(x for x in records if x['status']=='action_confirmed')
     assert confirmed['before']==r and confirmed['after']==after and confirmed['step_id']==1

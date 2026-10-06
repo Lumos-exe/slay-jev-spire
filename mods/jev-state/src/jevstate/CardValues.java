@@ -18,6 +18,19 @@ import java.util.HashMap;
 @SpirePatch(cls="communicationmod.GameStateConverter", method="convertCardToJson",
             paramtypez={AbstractCard.class})
 public class CardValues {
+    public static java.util.Map<String,Object> nativeFields(Object instance, Class<?> base) {
+        java.util.function.BiFunction<Class<?>,Object,Object> reference=(type,value)-> {
+            if (!AbstractCard.class.isAssignableFrom(type)) return null;
+            HashMap<String,Object> ref=new HashMap<String,Object>();
+            AbstractCard card=(AbstractCard)value;
+            ref.put("card_id",card==null ? null : card.cardID);
+            ref.put("card_uuid",card==null ? null : card.uuid.toString());
+            return ref;
+        };
+        return communicationmod.GameStateListener.isWaitingForCommand()
+            ? NativeFields.atRevision(instance,base,ActionProtocol.ledger.currentRevision(),reference)
+            : NativeFields.snapshot(instance,base,reference);
+    }
     private static boolean benchmarkNormalized = false;
     @SpirePatch(clz=com.megacrit.cardcrawl.neow.NeowEvent.class, method="buttonEffect", paramtypez={int.class})
     public static class BenchmarkNeow {
@@ -52,6 +65,11 @@ public class CardValues {
     }
     @SpirePostfixPatch
     public static HashMap<String, Object> postfix(HashMap<String, Object> __result, AbstractCard card) {
+        NativeCatalog.observe(card);
+        __result.put("native_mechanics", NativeMechanics.describe(card, AbstractCard.class));
+        __result.put("native_fields", nativeFields(card, AbstractCard.class));
+        __result.put("keywords",new ArrayList<String>(new java.util.TreeSet<String>(card.keywords)));
+        __result.put("keyword_descriptions",NativeCatalog.keywordDescriptions(card));
         HashMap<String, Object> values = new HashMap<String, Object>();
         boolean inHand = AbstractDungeon.player != null && AbstractDungeon.player.hand.group.contains(card);
         values.put("source", "game_card_fields");
@@ -63,6 +81,7 @@ public class CardValues {
         values.put("base_block", card.baseBlock);
         values.put("base_magic_number", card.baseMagicNumber);
         values.put("cost_for_turn", card.costForTurn);
+        values.put("free_to_play",inHand && card.freeToPlay());
         values.put("damage_modified", card.isDamageModified);
         values.put("block_modified", card.isBlockModified);
         values.put("magic_number_modified", card.isMagicNumberModified);
@@ -71,6 +90,9 @@ public class CardValues {
         __result.put("target_type", card.target.toString());
         __result.put("free_to_play_once", card.freeToPlayOnce);
         __result.put("exhaust_on_use_once", card.exhaustOnUseOnce);
+        __result.put("retain", card.retain);
+        __result.put("self_retain", card.selfRetain);
+        __result.put("purge_on_use", card.purgeOnUse);
         __result.put("can_upgrade", card.canUpgrade());
         if (card.canUpgrade()) {
             AbstractCard upgraded = card.makeStatEquivalentCopy();
@@ -81,6 +103,14 @@ public class CardValues {
             preview.put("base_block", upgraded.baseBlock);
             preview.put("magic_number", upgraded.magicNumber);
             preview.put("upgrades", upgraded.timesUpgraded);
+            preview.put("name", upgraded.name);
+            preview.put("raw_description", upgraded.rawDescription);
+            preview.put("type", upgraded.type.toString());
+            preview.put("target_type", upgraded.target.toString());
+            preview.put("exhausts", upgraded.exhaust);
+            preview.put("ethereal", upgraded.isEthereal);
+            preview.put("retain", upgraded.retain);
+            preview.put("self_retain", upgraded.selfRetain);
             __result.put("upgrade_preview", preview);
         }
         if (inHand && AbstractDungeon.getCurrRoom() != null
@@ -140,9 +170,69 @@ public class CardValues {
         }
     }
 
+    @SpirePatch(clz=com.megacrit.cardcrawl.screens.select.GridCardSelectScreen.class, method="cancelUpgrade")
+    public static class GridCancelBoundary {
+        @SpirePostfixPatch
+        public static void postfix() {
+            // The native input has completed, but stays on GRID with zero
+            // selected cards. Publish the missing event through the original
+            // readiness path; do not infer completion from arbitrary changes.
+            communicationmod.GameStateListener.registerStateChange();
+        }
+    }
+
+    @SpirePatch(cls="communicationmod.GameStateConverter", method="getScreenState")
+    public static class NativeOptions {
+        @SpirePostfixPatch
+        public static HashMap<String, Object> postfix(HashMap<String, Object> __result) {
+            if (__result!=null && __result.containsKey("event_id")) {
+                try {
+                    java.util.Map<String,Object> view=MatchingGameObservation.capture();
+                    if (view!=null) __result.put("native_event",view);
+                } catch (ReflectiveOperationException | RuntimeException error) {
+                    __result.put("native_event_error",error.getClass().getSimpleName());
+                }
+            }
+            if (__result == null || !__result.containsKey("rest_options")) return __result;
+            try {
+                Class<?> choices = Class.forName("communicationmod.ChoiceScreenUtils");
+                java.lang.reflect.Method buttons = choices.getDeclaredMethod("getValidRestRoomButtons");
+                java.lang.reflect.Method name = choices.getDeclaredMethod("getCampfireOptionName",
+                    com.megacrit.cardcrawl.ui.campfire.AbstractCampfireOption.class);
+                buttons.setAccessible(true); name.setAccessible(true);
+                HashMap<String, Object> details = new HashMap<String, Object>();
+                for (Object button : (Iterable<?>) buttons.invoke(null)) {
+                    HashMap<String, Object> item = new HashMap<String, Object>();
+                    item.put("description", NativeFields.read(button, "description"));
+                    details.put((String) name.invoke(null, button), item);
+                }
+                __result.put("rest_option_details", details);
+            } catch (ReflectiveOperationException unavailable) {
+                __result.put("rest_details_unknown", true);
+                __result.put("rest_details_error", unavailable.getClass().getSimpleName());
+            }
+            return __result;
+        }
+    }
+
+    @SpirePatch(cls="communicationmod.GameStateConverter", method="getGameState")
+    public static class NativeRunContext {
+        @SpirePostfixPatch
+        public static HashMap<String, Object> postfix(HashMap<String, Object> __result) {
+            com.megacrit.cardcrawl.map.MapRoomNode node = AbstractDungeon.getCurrMapNode();
+            if (node != null) {
+                HashMap<String, Object> coordinates = new HashMap<String, Object>();
+                coordinates.put("x", node.x); coordinates.put("y", node.y);
+                __result.put("current_map_node", coordinates);
+            }
+            return __result;
+        }
+    }
+
     @SpirePatch(cls="communicationmod.GameStateConverter", method="getCombatState")
     public static class Counters {
         @SpirePostfixPatch
+        @SuppressWarnings("unchecked")
         public static HashMap<String, Object> postfix(HashMap<String, Object> __result) {
             HashMap<String, Object> counters = new HashMap<String, Object>();
             int attacks = 0, skills = 0;
@@ -156,6 +246,30 @@ public class CardValues {
             counters.put("attacks_this_combat", AbstractDungeon.actionManager.cardsPlayedThisCombat.stream()
                 .filter(card -> card.type == AbstractCard.CardType.ATTACK).count());
             __result.put("turn_counters", counters);
+            __result.put("energy_per_turn", AbstractDungeon.player.energy.energyMaster);
+            __result.put("draw_per_turn", AbstractDungeon.player.gameHandSize);
+            Object serialized = __result.get("monsters");
+            if (serialized instanceof ArrayList) {
+                ArrayList<Object> entries = (ArrayList<Object>) serialized;
+                for (int i = 0; i < entries.size() && i < AbstractDungeon.getMonsters().monsters.size(); i++) {
+                    if (!(entries.get(i) instanceof HashMap)) continue;
+                    AbstractMonster monster = AbstractDungeon.getMonsters().monsters.get(i);
+                    ((HashMap<String, Object>) entries.get(i)).put("entity_id", NativeIdentity.ledger.identify(monster));
+                    ((HashMap<String, Object>) entries.get(i)).put("move_name", monster.moveName);
+                    ((HashMap<String, Object>) entries.get(i)).put("native_mechanics", NativeMechanics.describe(monster, AbstractMonster.class));
+                    ((HashMap<String,Object>) entries.get(i)).put("native_fields",nativeFields(monster,AbstractMonster.class));
+                    ArrayList<Object> damageEntries=new ArrayList<Object>();
+                    for (com.megacrit.cardcrawl.cards.DamageInfo damage:monster.damage) {
+                        HashMap<String,Object> entry=new HashMap<String,Object>();
+                        entry.put("base",damage.base);entry.put("adjusted",damage.output);
+                        entry.put("type",damage.type.toString());damageEntries.add(entry);
+                    }
+                    HashMap<String,Object> damageCatalog=new HashMap<String,Object>();
+                    damageCatalog.put("entries",damageEntries);
+                    damageCatalog.put("scope","Loaded native damage entries, not a selected attack or predicted action outcome; current intent is separate.");
+                    ((HashMap<String,Object>) entries.get(i)).put("damage_catalog",damageCatalog);
+                }
+            }
             __result.put("benchmark_normalized", benchmarkNormalized && AbstractDungeon.floorNum == 1);
             return __result;
         }
@@ -173,15 +287,13 @@ public class CardValues {
                 for (AbstractPower power : creature.powers) {
                     if (power.ID.equals(state.get("id"))) {
                         state.put("native_description", power.description);
+                        state.put("native_mechanics", NativeMechanics.describe(power, AbstractPower.class));
+                        state.put("native_fields", nativeFields(power, AbstractPower.class));
                         state.put("power_type", power.type.toString());
-                        if (power instanceof com.megacrit.cardcrawl.powers.CombustPower) {
-                            try {
-                                java.lang.reflect.Field loss = power.getClass().getDeclaredField("hpLoss");
-                                loss.setAccessible(true);
-                                state.put("hp_loss", loss.getInt(power));
-                            } catch (ReflectiveOperationException unavailable) {
-                                state.put("hp_loss_unknown", true);
-                            }
+                        try {
+                            state.put("is_turn_based", NativeFields.read(power, "isTurnBased"));
+                        } catch (ReflectiveOperationException unavailable) {
+                            state.put("turn_based_unknown", true);
                         }
                         break;
                     }
@@ -196,7 +308,11 @@ public class CardValues {
     public static class Relics {
         @SpirePostfixPatch
         public static HashMap<String, Object> postfix(HashMap<String, Object> __result, AbstractRelic relic) {
+            NativeCatalog.observe(relic);
             __result.put("native_description", relic.description);
+            __result.put("native_mechanics", NativeMechanics.describe(relic, AbstractRelic.class));
+            __result.put("native_fields", nativeFields(relic, AbstractRelic.class));
+            __result.put("used_up", relic.usedUp);
             return __result;
         }
     }
@@ -207,6 +323,8 @@ public class CardValues {
         @SpirePostfixPatch
         public static HashMap<String, Object> postfix(HashMap<String, Object> __result, AbstractPotion potion) {
             __result.put("native_description", potion.description);
+            __result.put("native_mechanics", NativeMechanics.describe(potion, AbstractPotion.class));
+            __result.put("native_fields", nativeFields(potion, AbstractPotion.class));
             __result.put("potency", potion.getPotency());
             return __result;
         }

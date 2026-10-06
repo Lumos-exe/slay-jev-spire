@@ -31,13 +31,17 @@ def test_live_jev_uses_sdk_revalidates_state_and_never_falls_back(tmp_path, monk
 
     def respond(request):
         requests.append(json.loads(request.content))
-        assert requests[-1]['state']['enemies'][0]['intent'] == 'ATTACK'
+        state=requests[-1]['state']
+        assert state['reference_state']['enemies'][0]['intent'] == 'ATTACK'
+        assert state['current_board']['enemies'][0]['intent'] == 'ATTACK'
         if scenario == 'api_error':
             return httpx2.Response(401, json={'message': 'test-only-secret'})
+        ids=list(requests[-1]['questions']['action']['criteria'])
+        selected='play_2_0' if 'play_2_0' in ids else ids[0]
         return httpx2.Response(200, json={
             'model': 'jev-test', 'answers': {'action': {
-                'type': 'choice', 'choice': 'invalid' if scenario == 'bad_choice' else 'play_2_0',
-                'confidence': 0.8, 'probabilities': {key: 0.8 if key == 'play_2_0' else 0.2 / (len(requests[-1]['questions']['action']['criteria']) - 1) for key in requests[-1]['questions']['action']['criteria']},
+                'type': 'choice', 'choice': 'invalid' if scenario == 'bad_choice' else selected,
+                'confidence': 0.8, 'probabilities': {key:float(key==selected) for key in ids},
             }}, 'usage': {'input_tokens': 10, 'output_tokens': 2},
         })
 

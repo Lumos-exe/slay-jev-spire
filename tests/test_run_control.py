@@ -3,6 +3,30 @@ from pathlib import Path
 from slay_jev_spire.selectors import choose_mock
 
 
+def test_real_resume_reloads_selector_and_resets_only_loop_limits(tmp_path):
+    import subprocess
+    import sys
+    code='''
+import sys
+from pathlib import Path
+from slay_jev_spire import session,selectors
+old=session.RunSession(Path(sys.argv[1]),mode='mock')
+stale=lambda *args: None
+selectors.choose_mock=stale
+old.memory.declined.add((1,2))
+old.memory.visits['failed-request']=2
+old.shop_queue=[{'id':'purchase'}]
+old._stop('selection_error')
+new=session.resume_session(old,20)
+assert new.selector is selectors.choose_mock and new.selector is not stale
+assert not new.memory.visits and new.memory.declined=={(1,2)}
+assert new.shop_queue==old.shop_queue and new.shop_queue is not old.shop_queue
+assert new.run_id==old.run_id
+'''
+    result=subprocess.run([sys.executable,'-c',code,str(tmp_path)],capture_output=True,text=True)
+    assert result.returncode==0,result.stderr
+
+
 def test_resume_preserves_run_steps_and_adds_bounded_budget(tmp_path):
     from slay_jev_spire.session import RunSession
     from slay_jev_spire.session import resume_session

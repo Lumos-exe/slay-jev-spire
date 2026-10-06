@@ -27,3 +27,11 @@ def test_explicit_start_does_not_count_as_api_request_or_model_answer():
     metrics = run_metrics(rows)
     assert metrics['api_requests'] == 0 and metrics['valid_decisions'] == 0
     assert metrics['confirmed_actions'] == 1
+
+
+def test_shop_two_stage_model_calls_are_not_counted_as_one():
+    rows=[event('request_started',1),event('decision',1,decision={'model_requests':2}),
+          event('decision',2,decision={'model_requests':2},source='reused_shop_plan')]
+    metrics=run_metrics(rows)
+    assert metrics['api_requests']==2 and metrics['logical_requests']==1
+    assert metrics['api_count_complete']

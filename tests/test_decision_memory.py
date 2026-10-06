@@ -11,7 +11,8 @@ from tests.test_journey import reward
 def screens():
     rewards = reward()
     g = rewards['game_state']
-    g['screen_state']['rewards'] = [{'reward_type': 'EMERALD_KEY'}, {'reward_type': 'CARD'}]
+    g['jev_identity'] = dict(version=1, run_id='fixture-game', room_id='fixture-room', encounter_id='fixture-encounter')
+    g['screen_state']['rewards'] = [{'reward_type': 'EMERALD_KEY'}, {'reward_type': 'CARD', 'reward_source_id':'fixture-reward'}]
     g['choice_list'] = ['emerald_key', 'card']
     cards = copy.deepcopy(rewards)
     cards['available_commands'] = ['choose', 'skip', 'state']
@@ -19,6 +20,7 @@ def screens():
     g['screen_type'] = 'CARD_REWARD'
     g['choice_list'] = ['warcry']
     g['screen_state'] = {'cards': [{'id': 'Warcry', 'name': 'Warcry', 'uuid': 'reward-card'}],
+                         'reward_source_id': 'fixture-reward',
                          'skip_available': True, 'bowl_available': False}
     return rewards, cards
 
@@ -73,6 +75,7 @@ def test_skip_memory_survives_resume_and_process_restart(tmp_path):
     assert 'CHOOSE 1' not in [a['command'] for a in captured[-1]]
     fresh = copy.deepcopy(rewards)
     fresh['game_state']['seed'] += 1
+    fresh['game_state']['jev_identity']['run_id'] = 'other-game'
     other = RunSession(tmp_path, mode='mock', selector=inspect, catalog={})
     other.receive(fresh)
     assert other.pending[1]['action']['command'] == 'CHOOSE 1' and other.calls == 0
@@ -81,6 +84,8 @@ def test_skip_memory_survives_resume_and_process_restart(tmp_path):
 def test_new_game_with_same_seed_does_not_inherit_declined_rewards(tmp_path):
     previous, rewards = skipped_session(tmp_path)
     previous.receive(rewards)
+    rewards = copy.deepcopy(rewards)
+    rewards['game_state']['jev_identity']['run_id'] = 'new-fixture-game'
     fresh = RunSession(tmp_path, mode='mock', start_new=True, catalog={})
     assert fresh.receive(rewards) == ['STATE']
     assert fresh.pending[1]['action']['command'] == 'CHOOSE 1'
@@ -100,6 +105,7 @@ def test_same_state_loop_stops_before_another_model_call(tmp_path):
 
 def test_shop_is_inspected_before_model_may_leave_and_not_reopened(tmp_path):
     entrance=reward()
+    entrance['game_state']['jev_identity'] = dict(version=1, run_id='shop-game', room_id='shop-room', encounter_id=None)
     entrance['available_commands']=['choose','proceed','state']
     entrance['game_state'].update(screen_type='SHOP_ROOM',screen_state={},choice_list=['shop'],gold=245)
     shop=copy.deepcopy(entrance)
@@ -137,8 +143,9 @@ def test_combat_context_preserves_native_damage_and_warns_about_unused_energy(tm
     summary, actions = seen[-1]
     assert summary['decision_context']['playable_card_count'] > 0
     assert summary['decision_context']['remaining_energy'] == 3
+    assert summary['combat_choice_mode']=='native_conditional_sequences'
     assert all(a['kind'] == 'turn_plan' for a in actions)
-    assert any(a['sequence'] == [{'kind': 'end'}] for a in actions)
+    assert any(a['sequence']==[{'kind':'end'}] for a in actions)
 
 
 def test_action_and_time_limits_stop_without_model_calls(tmp_path):
@@ -156,6 +163,7 @@ def test_restore_does_not_hide_anonymous_multiple_rewards(tmp_path):
     s, rewards = skipped_session(tmp_path)
     s.receive(rewards)
     multiple = copy.deepcopy(rewards)
+    multiple['game_state']['screen_state']['rewards'][1].pop('reward_source_id')
     multiple['game_state']['screen_state']['rewards'].append({'reward_type': 'CARD'})
     multiple['game_state']['choice_list'].append('card')
     actions = __import__('slay_jev_spire.screens', fromlist=['prepare_journey']).prepare_journey(multiple)[1]
@@ -175,7 +183,7 @@ def test_numeric_resume_flag_can_expand_old_small_budget(tmp_path):
 def test_run_cli_accepts_whole_run_budget_but_combat_stays_bounded(tmp_path):
     import subprocess
     import sys
-    args = [sys.executable, 'capture_game.py', '--output-dir', str(tmp_path), '--max-decisions', '500']
+    args = [sys.executable, '-X', 'utf8', 'capture_game.py', '--output-dir', str(tmp_path), '--max-decisions', '500']
     whole = subprocess.run(args + ['--run', 'mock'], input='', text=True, capture_output=True, timeout=10)
     assert whole.returncode == 0, whole.stderr
     combat = subprocess.run(args + ['--combat', 'mock'], input='', text=True, capture_output=True, timeout=10)

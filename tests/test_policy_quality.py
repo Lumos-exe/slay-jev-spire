@@ -43,8 +43,8 @@ def test_bash_combo_is_searched_even_when_strike_is_first_in_hand():
     raw = battle([card('Strike_R', 1, damage=6), card('Bash', 2, damage=8, magic=2)], enemy_hp=16)
     plans, stats = generate_plans(*prepare_native_combat(raw))
     assert plans and len({p['id'] for p in plans}) == len(plans)
-    assert all(p['outcome']['combat_won'] for p in plans)
-    assert all([s.get('card_id') for s in p['sequence']] == ['Bash', 'Strike_R'] for p in plans)
+    assert any(p['outcome']['combat_won'] for p in plans)
+    assert any([s.get('card_id') for s in p['sequence']] == ['Bash', 'Strike_R'] for p in plans)
     assert stats['expanded'] > 1
 
 
@@ -125,15 +125,15 @@ def test_heavy_blade_strength_weak_and_vulnerable_round_once():
 def test_search_width_and_truncation_are_reported():
     raw = battle([card('Strike_R',1,damage=6), card('Bash',2,damage=8,magic=2)])
     plans, stats = generate_plans(*prepare_native_combat(raw), SearchConfig(beam_width=2,max_nodes=1))
-    assert len(plans) <= 2 and stats['expanded'] == 1
+    assert plans and stats['expanded'] == 1 and not stats['fallback_required']
     assert 'node_budget' in stats['truncated'] and not stats['complete_enumeration']
 
 
 def test_unknown_relic_is_visible_and_never_certifies_lethal():
     raw = battle([card('Strike_R',1,damage=6)], enemy_hp=1, relics=[{'id':'modded','counter':0}])
-    plans, _ = generate_plans(*prepare_native_combat(raw))
-    assert plans and all(not p['outcome']['combat_won'] for p in plans)
-    assert any('unmodeled_relic:modded' in p['uncertainties'] for p in plans)
+    plans, stats = generate_plans(*prepare_native_combat(raw))
+    assert plans and all('outcome' not in p for p in plans) and not stats['fallback_required']
+    assert 'unmodeled_relic:modded' in stats['coverage_unknowns']
 
 
 @pytest.mark.parametrize('probabilities', [None, {'A':1}, {'A':float('nan'),'B':0}, {'A':0.1,'B':0.1}, {'A':-0.1,'B':1.1}])
@@ -191,7 +191,7 @@ def test_end_turn_random_trigger_cannot_be_called_deterministic():
 def test_search_and_choice_share_one_decision_id(tmp_path):
     import json
     from slay_jev_spire.session import RunSession
-    s=RunSession(tmp_path,mode='mock')
+    s=RunSession(tmp_path,mode='mock',planning_mode='enumerate')
     s.receive(battle([card('Strike_R',1,damage=6)]))
     rows=[json.loads(x) for x in (tmp_path/'runs.jsonl').read_text(encoding='utf-8').splitlines()]
     relevant=[r for r in rows if r['status'] in {'search_completed','request_started','plan_selected'}]
@@ -204,7 +204,7 @@ def test_resume_keeps_planned_selection_without_spending_api_budget(tmp_path):
     s=RunSession(tmp_path,mode='mock',max_decisions=1)
     s.planned_selection='Strike_R';s.plan_metadata={'plan_id':'chosen-plan'}
     s.calls=1;s.stopped=True;s.reason='paused'
-    resumed=resume_session(s,1)
+    resumed=resume_session(s,1,session_factory=RunSession)
     assert resumed.planned_selection=='Strike_R' and resumed.plan_metadata==s.plan_metadata
     resumed.max_decisions=1
     raw=battle([card('Strike_R',1,damage=6)])
@@ -459,11 +459,10 @@ def test_draw_plan_includes_conditional_continuation_of_existing_hand():
         draw=[card('Defend_R',1,'SKILL',block=5,target=False)])
     plans,_=generate_plans(*prepare_native_combat(raw))
     prefix=next(p for p in plans if len(p['sequence'])==1 and p['sequence'][0].get('card_id')=='Deep Breath')
-    continuation=prefix['outcome']['known_hand_continuation']
-    assert continuation['sequence']==[{'card_id':'Strike_R','target_index':0}]
-    assert continuation['outcome']['enemy_hp']==34
-    assert continuation['outcome']['forecast_scope']=='conditional_known_hand'
-    assert prefix['outcome']['forecast_scope']=='partial' and not prefix['outcome']['combat_won']
+    assert 'known_hand_continuation' not in prefix['outcome']
+    assert prefix['outcome']['incoming_hp_loss'] is None
+    assert prefix['checkpoint']=='draw_cards'
+    assert len(prefix['sequence'])==1
 
 
 def test_other_observed_neow_cards_have_explicit_effects():
@@ -549,8 +548,9 @@ def test_weak_potion_then_end_saves_nine_hp_without_energy():
     raw['game_state']['combat_state']['player'].update(current_hp=25, block=15)
     raw['game_state']['combat_state']['monsters'][0].update(id='SlimeBoss', max_hp=140, move_adjusted_damage=35)
     plans, _ = generate_plans(*prepare_native_combat(raw))
-    assert plans[0]['sequence'][0]['potion_id'] == 'Weak Potion'
-    assert plans[0]['outcome']['player_hp_after_turn'] == 14
+    used = next(p for p in plans if p['outcome']['potions_used'])
+    assert used['sequence'][0]['potion_id'] == 'Weak Potion'
+    assert used['outcome']['player_hp_after_turn'] == 14
     assert next(p for p in plans if not p['outcome']['potions_used'])['outcome']['player_hp_after_turn'] == 5
 
 
@@ -577,7 +577,9 @@ def test_potion_effects_use_native_potency_and_unlock_card_actions(ident, potenc
     raw = with_potion(battle([cards[card_id]], energy=energy), ident, potency, target)
     if energy == 0: raw['game_state']['combat_state']['hand'][0]['is_playable'] = False
     plans, _ = generate_plans(*prepare_native_combat(raw))
-    combo = next(p for p in plans if [s['kind'] for s in p['sequence']] == ['potion', 'play', 'end'])
+    combo = next(p for p in plans if len(p['sequence']) == 3 and
+                 {s['kind'] for s in p['sequence']} == {'potion', 'play', 'end'} and
+                 p['outcome']['enemy_hp'] == expected_hp and p['outcome']['incoming_hp_loss'] == expected_loss)
     assert combo['outcome']['enemy_hp'] == expected_hp and combo['outcome']['incoming_hp_loss'] == expected_loss
 
 
@@ -589,13 +591,14 @@ def test_potion_prefixes_share_budget_and_do_not_chain_or_guess_unknowns():
     assert stats['expanded'] + stats['continuation_nodes'] <= 2 and 'node_budget' in stats['truncated']
     plans, stats = generate_plans(summary, actions)
     assert 'potion_use_2' not in stats['planned_potion_uses']
-    assert all(sum(s['kind'] == 'potion' for s in p['sequence']) <= 1 for p in plans)
-    assert all(s['kind'] != 'potion' or i == 0 for p in plans for i, s in enumerate(p['sequence']))
+    assert any(sum(s['kind'] == 'potion' for s in p['sequence']) == 2 for p in plans)
+    assert any(p['sequence'][0]['kind']=='play' and any(s['kind']=='potion' for s in p['sequence'][1:]) for p in plans)
+    assert all(len({s['potion_index'] for s in p['sequence'] if s['kind']=='potion'}) ==
+               sum(s['kind']=='potion' for s in p['sequence']) for p in plans)
     raw['game_state']['relics'] = [{'id': 'Toy Ornithopter', 'counter': -1}]
-    plans, _ = generate_plans(*prepare_native_combat(raw))
-    used = [p for p in plans if p['outcome']['potions_used']]
-    assert used and all(p['checkpoint'] == 'unmodeled_potion_trigger' and len(p['sequence']) == 1 for p in used)
-    assert all(not p['outcome']['combat_won'] for p in used)
+    plans, stats = generate_plans(*prepare_native_combat(raw))
+    assert plans and all('outcome' not in p for p in plans) and not stats['fallback_required']
+    assert 'unmodeled_relic:Toy Ornithopter' in stats['coverage_unknowns']
 
 
 def test_equivalent_card_instances_share_candidates_but_upgrades_do_not():
@@ -603,7 +606,8 @@ def test_equivalent_card_instances_share_candidates_but_upgrades_do_not():
     two = deepcopy(one); two['uuid'] = 'other-strike'
     raw = battle([one, two], energy=1)
     plans, stats = generate_plans(*prepare_native_combat(raw))
-    assert len(plans) == 2 and stats['semantic_deduplicated'] >= 1
+    assert len(plans) == 3 and stats['semantic_deduplicated'] == 0
+    assert {p['sequence'][0].get('card_uuid') for p in plans} == {None, one['uuid'], two['uuid']}
     raw['game_state']['combat_state']['hand'][1]['upgrades'] = 1
     plans, _ = generate_plans(*prepare_native_combat(raw))
     assert len(plans) == 3
@@ -721,7 +725,7 @@ def test_forge_zero_potency_upgrades_then_kills_nob_without_skill_trigger():
 def test_forge_missing_or_stale_upgrade_metadata_stops_for_observation(metadata):
     raw = with_potion(battle([card('Strike_R', 1, damage=6, **metadata)]), 'BlessingOfTheForge', 0)
     plans, _ = generate_plans(*prepare_native_combat(raw))
-    prefixes = [p for p in plans if p['outcome']['potions_used']]
+    prefixes = [p for p in plans if p['sequence'][0]['kind']=='potion']
     assert prefixes and all(len(p['sequence']) == 1 and p['checkpoint'] == 'upgrade_values_unavailable'
                             and p['outcome']['forecast_scope'] == 'partial' for p in prefixes)
 

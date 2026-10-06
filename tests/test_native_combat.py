@@ -32,7 +32,7 @@ def test_native_cards_and_piles_preserve_metadata(raw):
     original = copy.deepcopy(raw)
     summary, actions = prepare_native_combat(raw)
     assert [a['command'] for a in actions] == ['PLAY 1', 'PLAY 2 0', 'PLAY 3 0', 'END']
-    assert summary['hand'][0]['effect'] == 'unknown'
+    assert 'effect' not in summary['hand'][0]
     assert summary['hand'][0]['upgrades'] == 3
     assert summary['hand'][0]['exhausts'] is True
     assert summary['draw_order_known'] is False

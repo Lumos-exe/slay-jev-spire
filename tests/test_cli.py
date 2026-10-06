@@ -31,7 +31,7 @@ raise SystemExit(main(sys.argv[1:]))
             cwd=ROOT, env=env, encoding="utf-8", capture_output=True,
         )
         assert result.returncode == 0, result.stderr
-        assert "PLAN" in result.stdout
+        assert "PLAY" in result.stdout
         assert "mock" in result.stdout
         assert str(log) in result.stdout
     records = [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines()]
@@ -40,8 +40,10 @@ raise SystemExit(main(sys.argv[1:]))
         assert record["raw_state"] == json.loads(SAMPLE.read_text(encoding="utf-8"))
         assert record["mode"] == "mock"
         assert record["decision"]["action"] in record["candidates"]
-        assert record["decision"]["action"]["command"] == "PLAN"
-        assert record['schema_version'] == 2 and record['search']['beam_width'] == 32
+        assert record["decision"]["action"]["command"] == 'PLAN'
+        assert record["decision"]["action"]["sequence"][0]['kind'] == 'play'
+        assert not record['search']['fallback_required']
+        assert record['schema_version'] == 2 and record['search']['policy'] == 'native_conditional_sequences'
         assert "map" not in record["summary"]
         assert record["instructions"]
         assert record["decision"]["returned_model"] is None

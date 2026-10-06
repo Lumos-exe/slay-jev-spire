@@ -9,9 +9,9 @@ from getpass import getpass
 
 from .models import Action, Decision
 from .records import append_record, build_record, safe_text
-from .selectors import INSTRUCTIONS, SelectionError, choose_jev, choose_mock
+from .selectors import SelectionError, choose_jev, choose_mock, instructions_for
 from .state import UnsupportedState, prepare_state
-from .turn_planner import generate_plans, SearchConfig
+from .planning_config import SearchConfig
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -139,8 +139,13 @@ def main(argv: list[str] | None = None) -> int:
         if args.state.resolve() == args.log.resolve():
             raise SelectionError("样本文件与记录文件不能使用同一路径。")
         raw = load_state(args.state)
-        summary, candidates = prepare_state(raw)
-        candidates, search = generate_plans(summary, candidates)
+        summary, native_actions = prepare_state(raw)
+        from .native_sequences import generate_plans
+        candidates, search = generate_plans(summary, native_actions)
+        from .shortlist import select as shortlist
+        candidates,shortlist_stats=shortlist(candidates)
+        summary = dict(summary, combat_choice_mode=search['policy'], candidate_generation=search,
+                       shortlist=shortlist_stats,_final_shortlist=True)
         if not candidates: raise UnsupportedState('No turn plans generated.')
         _print_candidates(summary, candidates)
 
@@ -148,7 +153,7 @@ def main(argv: list[str] | None = None) -> int:
             from .config import load_jev_key
             load_jev_key()
         decision = (choose_mock if args.mode == "mock" else choose_jev)(summary, candidates)
-        record = build_record(raw, summary, candidates, decision, args.mode, INSTRUCTIONS)
+        record = build_record(raw, summary, candidates, decision, args.mode, instructions_for(summary))
         record.update(schema_version=2, search=search)
         append_record(args.log, record)
         _print_decision(args.mode, decision, args.log)

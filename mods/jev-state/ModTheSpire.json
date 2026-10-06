@@ -3,7 +3,7 @@
   "name": "Jev Native Card State",
   "author_list": ["Jev Spire project"],
   "description": "Exports native card values through CommunicationMod without changing gameplay.",
-  "version": "0.2.0",
+  "version": "0.4.5",
   "sts_version": "12-18-2022",
   "mts_version": "3.30.3",
   "dependencies": ["basemod", "CommunicationMod"]

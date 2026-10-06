@@ -28,7 +28,7 @@ def test_invalid_choice_is_rejected(choice, actions):
 def test_jev_sdk_request_and_response(monkeypatch, actions):
     import httpx2
     import typesafe_sdk
-    from slay_jev_spire.selectors import INSTRUCTIONS, choose_jev
+    from slay_jev_spire.selectors import INSTRUCTIONS, _choose_jev_once
 
     calls = []
     original_client = typesafe_sdk.TypeSafeClient
@@ -46,6 +46,7 @@ def test_jev_sdk_request_and_response(monkeypatch, actions):
         })
 
     def client(**kwargs):
+        assert kwargs["api_key"] == "test-only-key"
         assert kwargs["retry"].max_retries == 0
         assert kwargs["timeout"] == 30.0
         return original_client(**kwargs, transport=httpx2.MockTransport(handle))
@@ -53,7 +54,7 @@ def test_jev_sdk_request_and_response(monkeypatch, actions):
     monkeypatch.setenv("TYPESAFE_API_KEY", "test-only-key")
     monkeypatch.setenv("TYPESAFE_BASE_URL", "https://invalid.example")
     monkeypatch.setattr(typesafe_sdk, "TypeSafeClient", client)
-    result = choose_jev({"turn": 1}, actions)
+    result = _choose_jev_once({"turn": 1}, actions)
     assert len(calls) == 1
     assert calls[0]["state"] == {"turn": 1}
     assert calls[0]["questions"]["action"] == {
@@ -91,7 +92,7 @@ def test_missing_answer_is_rejected(monkeypatch, actions):
 
 def test_plan_payload_keeps_decision_facts_without_mutating_full_evidence():
     from copy import deepcopy
-    from slay_jev_spire.selectors import plan_criteria
+    from tools.detailed_payload import plan_criteria
     action={'kind':'turn_plan','sequence':[{'kind':'play','card_id':'Deep Breath','card_uuid':'uid','card_name':'深呼吸','target_index':None}],
         'outcome':{'enemy_hp_by_target':[30],'incoming_hp_loss':None,'player_hp_after_turn':None,
                    'remaining_energy':3,'block':0,'draw_count':2,'forecast_scope':'partial','combat_won':False,
@@ -116,13 +117,16 @@ def test_card_templates_are_lossless_and_share_identity_with_plans():
             'outcome':{'enemy_hp_by_target':[3],'incoming_hp_loss':0,'forecast_scope':'deterministic'}}
     wire,criteria,refs=model_payload(state,[action])
     assert state==original and len(wire['card_templates'])==1
-    assert wire['hand'][0]['uuid']==criteria['plan']['sequence'][0]['card_uuid']
+    assert wire['hand'][0]['uuid']==wire['turn_steps'][criteria['plan']['sequence'][0]]['card_uuid']
     def expand(v):
         if isinstance(v,list):return [expand(x) for x in v]
         if not isinstance(v,dict):return v
-        if '$card' in v:v={**wire['card_templates'][v['$card']],**{k:x for k,x in v.items() if k!='$card'}}
+        if '$card' in v:
+            removed=v.get('$remove',[])
+            v={**wire['card_templates'][v['$card']],**{k:x for k,x in v.items() if k not in {'$card','$remove'}}}
+            for key in removed:v.pop(key,None)
         return {k:refs.get(x,x) if k in {'uuid','card_uuid'} and isinstance(x,str) else expand(x) for k,x in v.items()}
-    assert expand({k:v for k,v in wire.items() if k!='card_templates'})==original
+    assert expand({k:wire[k] for k in original})==original
 
 
 def test_choice_objective_depends_on_screen_and_temporary_card_origin():
@@ -134,7 +138,7 @@ def test_choice_objective_depends_on_screen_and_temporary_card_origin():
     assert reward!=combat and temporary!=reward
     assert '拿牌不消耗金币或能量' in reward and '临时牌' in temporary
     state,_,_=model_payload({'screen_type':'CARD_REWARD','deck':[{'id':'Strike_R','type':'ATTACK'}]*5+[{'id':'Defend_R','type':'SKILL'}]*4+[{'id':'Bash','type':'ATTACK'}]},[])
-    assert state['deck_profile']['size']==10 and state['deck_profile']['starting_cards']==10
+    assert state['deck_profile']['size']==10 and state['deck_profile']['basic_cards']==0
 
 
 def review_card(cid, cost, kind='SKILL', magic=-1, block=-1, upgrades=0, **fields):
@@ -142,19 +146,16 @@ def review_card(cid, cost, kind='SKILL', magic=-1, block=-1, upgrades=0, **field
                 native_values={'magic_number':magic,'base_block':block,'base_damage':-1},**fields)
 
 
-def test_strategy_distinguishes_exhaust_engine_from_payoff_and_unknown_cards():
+def test_native_context_preserves_values_without_name_based_role_classification():
     from slay_jev_spire.selectors import model_payload
     deck=[review_card('Dark Embrace',2,'POWER'),review_card('Corruption',3,'POWER'),
           review_card('Offering',0,magic=3,exhausts=True),review_card('Pommel Strike',1,'ATTACK',magic=2,upgrades=1),
           review_card('Whirlwind',-1,'ATTACK'),review_card('ForeignCard',1)]
     wire,_,_=model_payload({'screen_type':'CARD_REWARD','deck':deck},[])
-    strategy=wire['strategy_context']['deck']; roles={c['id']:c for c in strategy['functions']}
-    assert 'exhaust_enabler' not in roles['Dark Embrace']
-    assert roles['Corruption']['exhaust_enabler'] and roles['Offering']['self_exhaust']
-    assert roles['Offering']['draw']==3 and roles['Offering']['energy']==2 and roles['Offering']['hp_cost']==6
-    assert roles['Pommel Strike']['draw']==2
+    strategy=wire['strategy_context']['deck']
+    assert [c['id'] for c in strategy['cards']]==[c['id'] for c in deck]
     assert strategy['cost_counts']=={'2':1,'3':1,'0':1,'1':2,'-1':1}
-    assert strategy['unclassified_effects']=={'ForeignCard':1}
+    assert 'unclassified_effects' not in strategy and 'functions' not in strategy
 
 
 def test_upgrade_deltas_use_native_preview_and_do_not_leak_into_purge():
@@ -192,23 +193,16 @@ def test_identical_chest_choices_expose_different_visible_campfire_routes():
     assert result['right']['resource_ranges']['R']==[1,1]
 
 
-def test_budget_context_keeps_offering_inflame_and_purge_package_executable():
+def test_shop_context_has_no_obsolete_weighted_pair_shortlist():
     from slay_jev_spire.selectors import strategy_context
-    deck=[review_card('Dark Embrace',2,'POWER')]
-    summary={'screen_type':'SHOP_SCREEN','gold':296,'deck':deck,'relics':[{'id':'Bird Faced Urn'}]}
-    actions=[{'id':'offering','kind':'screen_shop_card','item':review_card('Offering',0,magic=3,exhausts=True,price=138)},
-             {'id':'inflame','kind':'screen_shop_card','item':review_card('Inflame',1,'POWER',magic=2,price=68)},
-             {'id':'purge','kind':'screen_shop_purge','item':{'price':75}}]
-    bundle=strategy_context(summary,actions)['shop_bundles'][0]
-    assert set(bundle['actions'])=={'offering','inflame'} and bundle['cost']==206
-    assert bundle['also_affords_purge']=={'action':'purge','total_cost':281}
-    assert bundle['gold_left']==90 and len(bundle['synergies'])==2
-    summary['gold']=200
+    summary={'screen_type':'SHOP_SCREEN','gold':296,'deck':[review_card('Dark Embrace',2,'POWER')]}
+    actions=[{'id':'offering','kind':'screen_shop_card','item':review_card('Offering',0,price=138)},
+             {'id':'inflame','kind':'screen_shop_card','item':review_card('Inflame',1,'POWER',price=68)}]
     assert 'shop_bundles' not in strategy_context(summary,actions)
 
 
 def test_plan_payload_preserves_pollution_block_retention_and_potion_facts():
-    from slay_jev_spire.selectors import plan_criteria
+    from tools.detailed_payload import plan_criteria
     out={'generated_card_counts':{'Wound':2},'generated_card_types':{'STATUS':2},
          'new_status_cards':2,'new_curse_cards':0,'unexhausted_status_cards':0,'unexhausted_curse_cards':0,
          'exhausted_card_counts':{'Wound':2},'effective_block':11,'wasted_block':4,
@@ -221,7 +215,7 @@ def test_plan_payload_preserves_pollution_block_retention_and_potion_facts():
 
 def test_standalone_generated_potion_keeps_native_effect_and_observation_boundary():
     from copy import deepcopy
-    from slay_jev_spire.selectors import plan_criteria
+    from tools.detailed_payload import plan_criteria
     potion={'id':'PowerPotion','name':'能力药水','potency':1,'can_use':True,
             'native_description':'Choose one of 3 random Power cards. It costs 0 this turn.'}
     action={'kind':'potion','id':'potion_use_0','potion_index':0,'subaction':'use',

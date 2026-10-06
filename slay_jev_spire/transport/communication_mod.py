@@ -16,7 +16,7 @@ from ..state import UnsupportedState, prepare_state
 from ..session import CombatSession
 from ..session import RunSession
 from ..session import handle_resume_request
-from ..turn_planner import SearchConfig
+from ..planning_config import SearchConfig
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -100,17 +100,25 @@ def main(argv: list[str] | None = None) -> int:
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument('--execute-once', choices=('mock', 'jev'),
                         help='在首次支持的稳定战斗状态选择并执行一次，随后继续采集')
-    mode_group.add_argument('--combat', choices=('mock', 'jev'), help='仅自动完成第一场支持的战斗')
-    mode_group.add_argument('--run', choices=('mock', 'jev'), help='跨支持战斗、奖励与地图的有界执行')
+    mode_group.add_argument('--combat', choices=('mock', 'jev', 'external'), help='仅自动完成第一场支持的战斗')
+    mode_group.add_argument('--run', choices=('mock', 'jev', 'external'), help='跨支持战斗、奖励与地图的有界执行')
     parser.add_argument('--start-new', action='store_true', help='明确开始铁甲战士 A0 新局，仅配合 --run')
     parser.add_argument('--max-decisions', type=int, default=None, help='API 请求预算：整局默认 500，单场默认 20')
+    parser.add_argument('--max-seconds', type=int, default=None,
+                        help='运行时间预算：Jev/mock 默认 5400 秒，外部参考模型默认 21600 秒；可显式设置。')
     parser.add_argument('--beam-width', type=int, default=32)
     parser.add_argument('--seed', help='新局固定种子')
+    parser.add_argument('--fault-injection',choices=('none','drop_settled','duplicate_action'),default='none',
+                        help='Explicit acceptance-test fault; never enabled by ordinary play.')
     args = parser.parse_args(argv)
     if args.start_new and not (args.run or args.combat):
         parser.error('--start-new 必须配合 --run 或 --combat')
     if args.max_decisions is None:
         args.max_decisions = 500 if args.run else 20
+    if args.max_seconds is None:
+        args.max_seconds = 21600 if (args.run or args.combat)=='external' else 5400
+    if not 1 <= args.max_seconds <= 43200:
+        parser.error('--max-seconds 必须为 1–43200')
     maximum = 2000
     if not 1 <= args.max_decisions <= maximum:
         parser.error(f'--max-decisions 必须为 1–{maximum}')
@@ -121,12 +129,22 @@ def main(argv: list[str] | None = None) -> int:
     initially_refreshed = False
     refresh_started = None
     session = None
+    fault_done=False
     try:
         args.output_dir.mkdir(parents=True, exist_ok=True)
         if args.run:
-            session = RunSession(args.output_dir, args.run, args.max_decisions, start_new=args.start_new, seed=args.seed, search_config=SearchConfig(beam_width=args.beam_width))
+            session = RunSession(args.output_dir, args.run, args.max_decisions, start_new=args.start_new, seed=args.seed, search_config=SearchConfig(beam_width=args.beam_width),require_native_receipts=args.run!='mock',max_seconds=args.max_seconds)
         elif args.combat:
-            session = RunSession(args.output_dir, args.combat, args.max_decisions, start_new=args.start_new, seed=args.seed, stop_after_combat=True, search_config=SearchConfig(beam_width=args.beam_width))
+            session = RunSession(args.output_dir, args.combat, args.max_decisions, start_new=args.start_new, seed=args.seed, stop_after_combat=True, search_config=SearchConfig(beam_width=args.beam_width),require_native_receipts=args.combat!='mock',max_seconds=args.max_seconds)
+        def emit(commands):
+            nonlocal fault_done
+            for command in commands:
+                print(command,flush=True)
+                if command!='STATE' and not command.startswith('JEV_STATUS '):session.command_sent(command)
+                if args.fault_injection=='duplicate_action' and not fault_done and command.startswith('JEV_ACTION '):
+                    fault_done=True
+                    print(command,flush=True);session.command_sent(command)
+                    session._record('fault_injected',fault='duplicate_action',transaction_id=session.transaction.data['id'])
         # 在握手前验证输出权限；状态日志采用追加方式保留历次采集。
         with (args.output_dir / 'states.jsonl').open('a', encoding='utf-8') as stream:
             print('ready', flush=True)
@@ -145,10 +163,11 @@ def main(argv: list[str] | None = None) -> int:
                         # 丢弃可能来自旧控制器的缓存消息，先获取新的状态。
                         continue
                     if getattr(session, 'resume_query_pending', False):
+                        query=session.resume_query_pending
                         session.resume_query_pending = False
-                        print('STATE', flush=True)
+                        emit([query if isinstance(query,str) else 'STATE'])
                 if line is None:
-                    session.tick()
+                    emit(session.idle_commands())
                     continue
                 raw = json.loads(line)
                 if not isinstance(raw, dict):
@@ -159,10 +178,13 @@ def main(argv: list[str] | None = None) -> int:
                 stream.flush()
                 _publish_snapshot(args.output_dir, snapshot)
                 if session:
-                    for command in session.receive(raw):
-                        print(command, flush=True)
-                        if command != 'STATE':
-                            session.command_sent(command)
+                    receipt=raw.get('jev_protocol',{}).get('receipt') or {}
+                    if (args.fault_injection=='drop_settled' and not fault_done and session.transaction
+                            and receipt.get('id')==session.transaction.data['id'] and receipt.get('status')=='settled'):
+                        fault_done=True
+                        session._record('fault_injected',fault='drop_settled',transaction_id=receipt['id'])
+                        continue
+                    emit(session.receive(raw))
                     continue
                 if pending is not None:
                     original, decision = pending

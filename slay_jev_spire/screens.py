@@ -3,6 +3,7 @@
 from copy import deepcopy
 import json
 import math
+import re
 from .models import Action
 from .state import UnsupportedState
 from .state import UnsupportedState, _require
@@ -48,6 +49,18 @@ def prepare_screen(raw: dict) -> list[Action]:
                 _require(choices[i]==option['label'].lower(),'Event labels do not align.')
                 seen.add(i); entries.append((i,'event',option.get('text',option['label']),{'option':option}))
             _require(seen==set(range(len(choices))),'Event indices do not align.')
+            board=state.get('native_event',{})
+            if board.get('kind')=='matching_cards' and board.get('phase')=='PLAY':
+                native=board.get('choices',[])
+                _require(board.get('ready_for_choice') is True and len(native)==len(choices),'Card board is not ready.')
+                enriched=[]
+                for i,kind,description,metadata in entries:
+                    slot=native[i]
+                    _require(slot.get('choice_index')==i and type(slot.get('slot')) is int,'Invalid native board index.')
+                    _require(type(slot.get('known')) is bool,'Invalid board visibility.')
+                    _require(slot['known'] or 'card' not in slot,'Hidden card identity leaked.')
+                    enriched.append((i,kind,description,{**metadata,'board_choice':deepcopy(slot)}))
+                entries=enriched
         elif screen=='SHOP_SCREEN':
             stock=[]; gold=_price(game['gold'])
             if state.get('purge_available') is True and _price(state['purge_cost'])<=gold:
@@ -75,6 +88,11 @@ def prepare_screen(raw: dict) -> list[Action]:
             expected={'CHEST':([] if state.get('chest_open') is True else ['open']),'SHOP_ROOM':['shop'],'REST':[x.lower() for x in state.get('rest_options',[])]}[screen]
             _require(choices==expected,'Room labels do not align.')
             entries=[(i,{'CHEST':'chest','SHOP_ROOM':'shop_room','REST':'rest'}[screen],label+' (native option; effect not inferred)',{'label':label}) for i,label in enumerate(choices)]
+            if screen=='REST':
+                details=state.get('rest_option_details',{})
+                entries=[(i,kind,(metadata['label']+': '+details[metadata['label']]['description'])
+                          if isinstance(details.get(metadata['label'],{}).get('description'),str) else description,metadata)
+                         for i,kind,description,metadata in entries]
         actions=[_action(screen,f'CHOOSE {i}',description,kind,choice_index=i,**metadata) for i,kind,description,metadata in entries] if 'choose' in commands else []
         for button in ('confirm','cancel','proceed','leave','skip'):
             if button in commands:
@@ -140,7 +158,69 @@ def _copied_selection(before, after, cards):
     return None
 
 
-def confirm_screen(before: dict, after: dict, action: Action) -> str | None:
+def _bottled_selection(before,after,card):
+    """Native bottle association, with a strict legacy-description fallback."""
+    if before.get('screen_type')!='GRID' or after.get('screen_type')=='GRID': return None
+    if any(before.get(k)!=after.get(k) for k in ('seed','act','floor')): return None
+    state=before.get('screen_state',{})
+    if state.get('num_cards')!=1 or any(state.get(k) for k in ('for_upgrade','for_purge','for_transform')): return None
+    uid=card.get('uuid');name=card.get('name')
+    if not uid or uid not in _cards(before.get('deck',[])) or uid not in _cards(after.get('deck',[])): return None
+    prior={r['id']:r for r in before.get('relics',[])}
+    bottles={'Bottled Flame':'ATTACK','Bottled Lightning':'SKILL','Bottled Tornado':'POWER'}
+    for relic in after.get('relics',[]):
+        ident=relic.get('id');old=prior.get(ident)
+        if not old: continue
+        if 'native_fields' in relic:
+            references=relic['native_fields'].get('references',{})
+            previous=old.get('native_fields',{}).get('references',{})
+            if any(ref.get('card_uuid')==uid and previous.get(field,{}).get('card_uuid')!=uid
+                   for field,ref in references.items() if isinstance(ref,dict)):
+                return 'Observed native relic field newly references the selected card UUID.'
+            continue
+        if bottles.get(ident)!=card.get('type'): continue  # Historical bridge snapshots.
+        if 'bottled_card_uuid' in relic:
+            if relic['bottled_card_uuid']==uid and old.get('bottled_card_uuid')!=uid:
+                return 'Observed native bottled relic bound to the selected card UUID.'
+            continue
+        # Older installed bridges already emit the game's updated description.
+        # Require a unique offered display name, its new highlighted occurrence,
+        # same deck UUID and screen closure; a generic screen change is not proof.
+        if not name or sum(c.get('name')==name for c in state.get('cards',[]))!=1: continue
+        description=relic.get('native_description','');previous=old.get('native_description','')
+        marker='#y'+name
+        if (description!=previous and re.search(re.escape(marker)+r'(?=$|[\s,.;:，。；：])',description)
+                and marker not in previous):
+            return 'Observed bottled relic description newly names the unique selected card after grid closure.'
+    return None
+
+
+def _redrawn_warcry_selection(before,after,card):
+    """Warcry exhausts after returning a card; Dark Embrace can redraw it."""
+    if before.get('screen_type')!='HAND_SELECT' or after.get('screen_type')!='NONE': return None
+    if before.get('room_phase')!='COMBAT' or after.get('room_phase')!='COMBAT': return None
+    if any(before.get(k)!=after.get(k) for k in ('seed','act','floor')): return None
+    old=before.get('combat_state',{});new=after.get('combat_state',{})
+    if old.get('turn') is None or old['turn']!=new.get('turn'): return None
+    if before.get('screen_state',{}).get('max_cards')!=1: return None
+    uid=card.get('uuid');old_hand=[c.get('uuid') for c in old.get('hand',[])]
+    new_hand=[c.get('uuid') for c in new.get('hand',[])]
+    if not uid or uid not in old_hand: return None
+    # The selected instance is removed then appended by the observed redraw.
+    expected=[x for x in old_hand if x!=uid]+[uid]
+    if new_hand[:len(expected)]!=expected: return None
+    pool={c.get('uuid') for p in ('draw_pile','discard_pile') for c in old.get(p,[])}
+    if any(x not in pool for x in new_hand[len(expected):]): return None
+    embrace=any(p.get('id') in {'Dark Embrace','DarkEmbrace'} and p.get('amount',0)>0
+                for p in old.get('player',{}).get('powers',[]))
+    exhausted=_cards(old.get('exhaust_pile',[]))
+    warcry=any(c.get('id')=='Warcry' and c.get('uuid') not in exhausted for c in new.get('exhaust_pile',[]))
+    if embrace and warcry:
+        return 'Observed Warcry newly exhausted and the selected UUID redrawn into hand with Dark Embrace in the same turn.'
+    return None
+
+
+def screen_effect_evidence(before: dict, after: dict, action: Action) -> str | None:
     """Match observations to this action; unrelated raw changes remain unconfirmed."""
     try:
         b=before['game_state']; a=after['game_state']; bs=b.get('screen_state',{}); ast=a.get('screen_state',{})
@@ -150,7 +230,9 @@ def confirm_screen(before: dict, after: dict, action: Action) -> str | None:
                     and ast.get('pending_card_uuid') == action['card_uuid']):
                 return 'Observed requested card UUID in native confirmation preview; effect awaits CONFIRM.'
             return (_selection_evidence(b,a,[action['card']],action['selection_state'])
-                    or _copied_selection(b,a,[action['card']]))
+                    or _copied_selection(b,a,[action['card']])
+                    or _bottled_selection(b,a,action['card'])
+                    or _redrawn_warcry_selection(b,a,action['card']))
         if kind=='screen_confirm' and b['screen_type'] in {'GRID','HAND_SELECT'}:
             cards=_selected(action['selection_state'])
             if not cards and action['selection_state'].get('pending_card_uuid'):
@@ -200,6 +282,9 @@ def confirm_screen(before: dict, after: dict, action: Action) -> str | None:
 
 
 
+confirm_screen = screen_effect_evidence  # Legacy offline API; not native acknowledgement.
+
+
 def _journey_action(command: str, description: str, **metadata) -> dict:
     """Create a candidate carrying its original native index and evidence metadata."""
     return {'id': command.lower().replace(' ', '_'), 'command': command, 'description': description, 'hand_index': None, 'card_uuid': None, 'target_index': None, **metadata}
@@ -210,7 +295,7 @@ def prepare_journey(raw: dict) -> tuple[dict, list[dict]]:
         _require(raw['in_game'] is True and raw['ready_for_command'] is True, 'State is not ready.')
         game = raw['game_state']
         screen = game['screen_type']
-        context = deepcopy({k: game.get(k) for k in ('seed', 'class', 'act', 'floor', 'current_hp', 'max_hp', 'gold', 'deck', 'relics', 'potions', 'map', 'act_boss', 'ascension_level')})
+        context = deepcopy({k: game.get(k) for k in ('seed', 'class', 'act', 'floor', 'current_hp', 'max_hp', 'gold', 'deck', 'relics', 'potions', 'map', 'current_map_node', 'act_boss', 'ascension_level')})
         context.update(screen_type=screen, screen_state=deepcopy(game.get('screen_state', {})))
         if game.get('room_phase') == 'COMBAT' and screen != 'NONE':
             context['combat_context'] = deepcopy(game.get('combat_state', {}))
@@ -235,7 +320,7 @@ def prepare_journey(raw: dict) -> tuple[dict, list[dict]]:
                 for i, reward in enumerate(rewards):
                     kind = reward['reward_type']
                     _require(choices[i] == kind.lower(), 'Reward labels do not align.')
-                    _require(kind in {'GOLD', 'CARD', 'POTION', 'RELIC', 'STOLEN_GOLD', 'SAPPHIRE_KEY', 'EMERALD_KEY'}, 'Unsupported reward type.')
+                    _require(isinstance(kind,str) and bool(kind), 'Invalid native reward type.')
                     if kind == 'POTION' and (not any((p.get('id') == 'Potion Slot' for p in game.get('potions', [])))):
                         continue
                     actions.append(_journey_action(f'CHOOSE {i}', json.dumps(reward, ensure_ascii=False), kind='reward', choice_index=i, reward=deepcopy(reward)))
@@ -267,7 +352,17 @@ def prepare_journey(raw: dict) -> tuple[dict, list[dict]]:
                     if 'choose' in commands:
                         actions.append(_journey_action(f'CHOOSE {i}', json.dumps(node, ensure_ascii=False), kind='map', node=deepcopy(node)))
         elif screen != 'COMPLETE':
-            raise UnsupportedState('Screen is not supported.')
+            from .transactions import protocol
+            if protocol(raw) is None:raise UnsupportedState('Screen is not supported.')
+            # Native legality plus native receipts allow unfamiliar choice
+            # screens without inventing their effects or input coordinates.
+            context['decision_scope']='Native legal choices; local effects are not modeled. Use the supplied screen state and labels.'
+            if 'choose' in commands:
+                actions.extend(_journey_action(f'CHOOSE {i}',label,kind='native_choice',choice_index=i)
+                               for i,label in enumerate(choices))
+            for button in ('confirm','cancel','proceed','leave','skip','return'):
+                if button in commands:
+                    actions.append(_journey_action(button.upper(),button.title(),kind='native_control'))
         if screen in {'COMBAT_REWARD', 'COMPLETE'} and 'proceed' in commands:
             actions.append(_journey_action('PROCEED', 'Proceed to map', kind='proceed'))
         if 'potion' in commands and screen not in {'GRID', 'HAND_SELECT'}:

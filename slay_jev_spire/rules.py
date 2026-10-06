@@ -6,8 +6,16 @@ not legality. Unknown triggers are reported, never certified as a lethal line.
 from copy import deepcopy
 from collections import Counter
 from math import floor
+from .native_context import observed_fields
 
-VERSION = 'ironclad-3'
+VERSION = 'ironclad-8'
+# Verified phase-specific callbacks do not react to each played card. Pending
+# effects outside the current segment are reported separately in position facts.
+RELIC_TRIGGER_PHASES = {'Incense Burner': 'turn_start', 'Sling': 'battle_start',
+                        'Pantograph': 'battle_start', 'Meat on the Bone': 'battle_end'}
+# Verified native power callbacks, scoped to the player. Confusion changes a
+# newly drawn card, not the already observed hand; Hex resolves after card.use.
+PLAYER_POWER_PHASES = {'Confusion': 'on_card_draw', 'Hex': 'after_non_attack_use'}
 # id: type, normal cost, base damage, base block, magic. Live fields override values.
 CARD_SPECS = {
     'Strike_R': ('ATTACK', 1, 6, 0, 0), 'Defend_R': ('SKILL', 1, 0, 5, 0),
@@ -71,7 +79,7 @@ PASSIVE_RELICS = set(('Burning Blood|Black Blood|Vajra|Oddly Smooth Stone|Anchor
     'Runic Dome|Philosopher\'s Stone|Black Star|Calling Bell|Tiny House|Empty Cage|Pandora\'s Box|'
     'Astrolabe|Snecko Eye|Mark of Pain|Runic Pyramid|PreservedInsect|Red Skull|Necronomicon').split('|'))
 TRIGGER_RELICS = {'Pen Nib', 'Nunchaku', 'Shuriken', 'Kunai', 'Ornamental Fan', 'Letter Opener',
-    'Sundial', 'Chemical X', 'Akabeko', 'The Boot', 'Paper Phrog', 'Paper Crane', 'Champion Belt',
+    'Sundial', 'Chemical X', 'Akabeko', 'Boot', 'Paper Frog', 'Paper Crane', 'Champion Belt',
     'Charon\'s Ashes', 'Dead Branch', 'Medical Kit', 'Blue Candle', 'Orichalcum', 'Calipers',
     'Torii', 'TungstenRod', 'Bronze Scales', 'Ice Cream', 'Velvet Choker', 'Art of War',
     'Bird Faced Urn', 'Mummified Hand', 'Strange Spoon', 'Unceasing Top', 'Runic Cube',
@@ -79,8 +87,8 @@ TRIGGER_RELICS = {'Pen Nib', 'Nunchaku', 'Shuriken', 'Kunai', 'Ornamental Fan', 
     'Magic Flower', 'NeowsBlessing'}
 KNOWN_POWERS = set(('Strength|Dexterity|Weak|Vulnerable|Frail|Artifact|Rage|Plated Armor|Metallicize|'
     'Feel No Pain|Dark Embrace|Corruption|Barricade|Berserk|Brutality|Demon Form|Evolve|'
-    'Fire Breathing|Flame Barrier|Combust|Rupture|Juggernaut|Double Tap|No Draw|Flex|'
-    'Ritual|Thievery|Curl Up|Thorns|Angry|Anger|Mode Shift|Spore Cloud|'
+    'Fire Breathing|Flame Barrier|Combust|Rupture|Juggernaut|Double Tap|No Draw|'
+    'Ritual|Thievery|Curl Up|Thorns|Sharp Hide|Angry|Anger|Mode Shift|Spore Cloud|'
     'Intangible|IntangiblePlayer|Invincible|Buffer|Entangled|NoBlock|'
     'Minion|Shackled|Draw Reduction|BeatOfDeath|Time Warp|Flight|Split|'
     'DuplicationPower|Pen Nib|FreeAttackPower|Double Damage|Vigor|LoseStrength').split('|'))
@@ -88,6 +96,7 @@ KNOWN_POWERS = set(('Strength|Dexterity|Weak|Vulnerable|Frail|Artifact|Rage|Plat
 
 def powers(values):
     aliases = {'Weakened': 'Weak', 'NoDraw': 'No Draw', 'DarkEmbrace': 'Dark Embrace',
+               'Flex':'LoseStrength','NoBlockPower':'NoBlock',
                'FeelNoPain': 'Feel No Pain', 'DemonForm': 'Demon Form', 'DoubleTap': 'Double Tap',
                'FlameBarrier': 'Flame Barrier', 'FireBreathing': 'Fire Breathing'}
     return {aliases.get(p['id'], p['id']): p['amount'] for p in values if p['amount'] != 0 or p['id'] in {'Invincible', 'Time Warp'}}
@@ -110,16 +119,34 @@ def card_state(card):
     return result
 
 
+def clone_state(state):
+    """Copy mutable simulation fields, share read-only native card metadata.
+
+    Card mutations in this module replace top-level fields (cost, upgrades,
+    UUID, flags) and never mutate native_values/upgrade_preview/descriptions.
+    Re-copying those immutable snapshots at every edge dominated the budget.
+    All other nested state, including powers, counters and effect records,
+    remains independently owned by the new branch.
+    """
+    piles={'hand','draw_pile','discard_pile','exhaust_pile'}
+    return {k:[dict(c) for c in v] if k in piles else deepcopy(v) for k,v in state.items()}
+
+
 def initial(summary):
     player = summary['player']
-    state = dict(turn=summary['turn'], hp=player['current_hp'], max_hp=player['max_hp'],
+    state = dict(identity=deepcopy(summary.get('identity')), turn=summary['turn'], hp=player['current_hp'], max_hp=player['max_hp'],
                  block=player['block'], energy=player['energy'], powers=powers(player['powers']),
                  hand=[card_state(c) for c in summary['hand']],
-                 relics={r['id']: r.get('counter', -1) for r in summary.get('relics', [])},
-                 enemies=[dict(id=e.get('id'), hp=e['current_hp'], max_hp=e['max_hp'], block=e['block'],
+                 relics={{'Paper Phrog':'Paper Frog','The Boot':'Boot'}.get(r['id'],r['id']): r.get('counter', -1)
+                         for r in summary.get('relics', [])},
+                 enemies=[dict(id=e.get('id'), entity_id=e.get('entity_id'), hp=e['current_hp'], max_hp=e['max_hp'], block=e['block'],
                    powers=powers(e.get('powers', [])), intent=e['intent'],
                    damage=e.get('move_adjusted_damage'), base_damage=e.get('move_base_damage'), hits=e.get('move_hits'),
-                   gone=e.get('is_gone', False), half_dead=e.get('half_dead', False)) for e in summary['enemies']],
+                   gone=e.get('is_gone', False), half_dead=e.get('half_dead', False),
+                   move_id=e.get('move_id'),monster_state=deepcopy(observed_fields(e)),
+                   damage_catalog=deepcopy(e.get('damage_catalog',{}))) for e in summary['enemies']],
+                 energy_per_turn=summary.get('energy_per_turn'), draw_per_turn=summary.get('draw_per_turn'),
+                 gold=summary.get('gold'),interruptions=[],
                  checkpoint=None, uncertainties=[], notes=[], draws=0, generated=0, draw_prospects=[],
                  generated_card_counts={}, generated_card_types={}, created_card_ids=[],
                  blocked_total=0, potions_used=[],
@@ -137,14 +164,22 @@ def initial(summary):
         if card.get('native_values', {}).get('source') != 'game_card_fields':
             state['uncertainties'].append('missing_native_values:' + card['id'])
     combust = next((p for p in player['powers'] if p['id'] == 'Combust'), None)
-    state['combust_hp_loss'] = combust.get('hp_loss') if combust else 0
+    state['combust_hp_loss'] = combust.get('native_fields',{}).get('instance_fields',{}).get('hpLoss',combust.get('hp_loss')) if combust else 0
     if combust and type(state['combust_hp_loss']) is not int:
         state['uncertainties'].append('missing_combust_hp_loss')
-    unknown = set(state['relics']) - PASSIVE_RELICS - TRIGGER_RELICS
+    state['outside_turn_relics'] = [dict(id=r['id'], phase=RELIC_TRIGGER_PHASES[r['id']],
+        counter=r.get('counter'), description=r.get('native_description',r.get('description')))
+        for r in summary.get('relics',[]) if r['id'] in RELIC_TRIGGER_PHASES]
+    unknown = set(state['relics']) - PASSIVE_RELICS - TRIGGER_RELICS - RELIC_TRIGGER_PHASES.keys()
     state['uncertainties'] += ['unmodeled_relic:' + r for r in sorted(unknown)]
     for owner in [state] + state['enemies']:
-        state['uncertainties'] += ['unmodeled_power:' + p for p in sorted(set(owner['powers']) - KNOWN_POWERS)]
+        supported=(KNOWN_POWERS-{'Sharp Hide'}) | PLAYER_POWER_PHASES.keys() if owner is state else KNOWN_POWERS
+        state['uncertainties'] += ['unmodeled_power:' + p for p in sorted(set(owner['powers']) - supported)]
     for enemy in state['enemies']:
+        if enemy['id']=='GremlinWizard' and enemy['move_id']==1 and enemy['damage'] is None:
+            entries=enemy['damage_catalog'].get('entries',[])
+            enemy['damage']=entries[0].get('adjusted') if entries else enemy['monster_state'].get('blast_adjusted_damage')
+            enemy['base_damage']=entries[0].get('base') if entries else enemy['monster_state'].get('blast_base_damage')
         # With no initial modifiers, the native adjusted value is also the base.
         if enemy['base_damage'] is None and not any(enemy['powers'].get(p) for p in ('Strength', 'Weak')) and not state['powers'].get('Vulnerable'):
             enemy['base_damage'] = enemy['damage']
@@ -153,6 +188,8 @@ def initial(summary):
 
 def refresh_intents(state, before):
     for enemy, old in zip(state['enemies'], before['enemies']):
+        if enemy['id']=='GremlinWizard' and enemy['move_id']==2:
+            continue  # Native CHARGE may carry an ATTACK icon after its blast.
         changed = any(enemy['powers'].get(p, 0) != old['powers'].get(p, 0) for p in ('Strength', 'Weak'))
         changed |= state['powers'].get('Vulnerable', 0) != before['powers'].get('Vulnerable', 0)
         if not changed or not enemy['intent'].startswith('ATTACK') or enemy['hp'] <= 0:
@@ -205,10 +242,10 @@ def potion_steps(state, summary, actions):
 
 
 def use_potion(before, step):
-    state = deepcopy(before)
+    state = clone_state(before)
     index, ident, amount = step['potion_index'], step['potion_id'], step['potency']
-    if state['potions_used'] or state['potions'][index]['id'] != ident:
-        raise ValueError('Potion prefix must consume one observed potion exactly once.')
+    if state['potions'][index]['id'] != ident:
+        raise ValueError('Each observed potion slot can be consumed only once.')
     state['potions'][index] = dict(potion_index=index, id='Potion Slot', potency=0)
     state['potions_used'].append({k: step[k] for k in ('potion_index', 'potion_id', 'target_index', 'potency')})
     effect = POTION_EFFECTS[ident]
@@ -238,6 +275,20 @@ def record_generation(state, ident, kind, count=1, uuid=None):
     if uuid is not None: state['created_card_ids'].append(uuid)
 
 
+def add_status_cards(state, ident, count, pile, source_card):
+    for n in range(count):
+        destination=state['discard_pile'] if pile=='hand' and len(state['hand'])>=10 else state[pile]
+        generated=card_state(dict(id=ident,uuid=f'@generated:{state["plays"]}:{ident}:{n}',
+            type='STATUS',cost=-2,has_target=False,exhausts=False,ethereal=ident=='Dazed'))
+        if 'can_upgrade' in source_card: generated['can_upgrade']=False
+        for flag in ('free_to_play_once','exhaust_on_use_once','retain','self_retain','purge_on_use'):
+            if flag in source_card: generated[flag]=False
+        if 'target_type' in source_card: generated['target_type']='NONE'
+        destination.append(generated)
+        record_generation(state,ident,'STATUS',uuid=generated['uuid'])
+    if pile=='draw_pile' and count: state['known_top']=[]
+
+
 def checkpoint(state, reason):
     state['checkpoint'] = state['checkpoint'] or reason
 
@@ -264,6 +315,11 @@ def upgrade_from_preview(state, card):
 
 def draw(state, count):
     if count > 0 and not state['powers'].get('No Draw'):
+        if 'Confusion' in state['powers'] and len(state['hand'])<10 and (state['draw_pile'] or state['discard_pile']):
+            # Even a known next card receives a fresh unknown cost (0..3).
+            state['draws']+=min(count,10-len(state['hand']))
+            checkpoint(state,'confusion_draw_cost')
+            return
         while count and state['known_top'] and len(state['hand']) < 10:
             uid = state['known_top'].pop(0)
             card = next((c for c in state['draw_pile'] if c['uuid'] == uid), None)
@@ -370,21 +426,30 @@ def damage_enemy(state, index, amount, attack=True):
         amount = min(amount, enemy['powers']['Invincible'])
     absorbed = min(enemy['block'], amount); enemy['block'] -= absorbed
     loss = max(0, amount - absorbed)
-    if attack and 0 < loss < 5 and 'The Boot' in state['relics']:
+    if attack and 0 < loss < 5 and 'Boot' in state['relics']:
         loss = 5
     dealt = min(enemy['hp'], loss); enemy['hp'] -= dealt
+    if dealt > 0 and enemy['id'] == 'Lagavulin' and enemy['intent'] == 'SLEEP':
+        # The observed wake transition changes intent and removes Metallicize.
+        # Do not continue a segment using the pre-hit sleeping state.
+        checkpoint(state, 'lagavulin_wake')
     if 'Invincible' in enemy['powers']:
         enemy['powers']['Invincible'] = max(0, enemy['powers']['Invincible'] - dealt)
     if attack:
-        lose_hp(state, enemy['powers'].get('Thorns', 0) + enemy['powers'].get('Sharp Hide', 0), blockable=True)
+        lose_hp(state, enemy['powers'].get('Thorns', 0), blockable=True)
     # Guardian counts actual HP loss from every damage source. Attacks below
     # the remaining threshold do not change its intent or interrupt the plan.
     if enemy['hp'] > 0 and enemy['id'] == 'TheGuardian' and 'Mode Shift' in enemy['powers']:
         enemy['powers']['Mode Shift'] = max(0, enemy['powers']['Mode Shift'] - dealt)
-        if enemy['powers']['Mode Shift'] == 0: checkpoint(state, 'enemy_reaction')
+        if enemy['powers']['Mode Shift'] == 0:
+            from .monsters import cancel_attack
+            cancel_attack(state,index,'guardian_mode_shift','BUFF',1,pending_block=20)
+            checkpoint(state, 'enemy_reaction')
     # Native slime damage handlers interrupt the intent only at half HP,
     # including HP lost to non-attack damage. Above it, keep planning the turn.
-    if splitting_slime and 0 < enemy['hp'] <= enemy['max_hp'] / 2:
+    if splitting_slime and 0 < enemy['hp'] <= enemy['max_hp'] / 2 and enemy.get('move_id')!=3:
+        from .monsters import cancel_attack
+        cancel_attack(state,index,'slime_split','UNKNOWN',3,child_hp_each=enemy['hp'])
         checkpoint(state, 'slime_split_intent')
     if enemy['hp'] <= 0:
         if enemy['powers'].get('Spore Cloud'):
@@ -397,7 +462,9 @@ def damage_enemy(state, index, amount, attack=True):
             enemy['block'] += enemy['powers'].pop('Curl Up', 0)
             if 'Angry' in enemy['powers']:
                 apply_power(state, index, 'Strength', enemy['powers']['Angry'])
-                checkpoint(state, 'enemy_intent_recalculation')
+                # This deterministic power change is resolved by refresh_intents
+                # after the card. Only missing native base damage needs an
+                # observation boundary; otherwise keep searching the same turn.
         if amount > 0 and enemy['powers'].get('Malleable', 0) > 0:
             enemy['block'] += enemy['powers']['Malleable']; enemy['powers']['Malleable'] += 1
         if ('Flight' in enemy['powers'] or ('Split' in enemy['powers'] and not splitting_slime)
@@ -416,7 +483,7 @@ def attack_damage(state, card, target):
     amount = max(0, base + strength + state['powers'].get('Vigor', 0))
     if state['powers'].get('Weak', 0) > 0: amount *= 0.75
     if state['enemies'][target]['powers'].get('Vulnerable', 0) > 0:
-        amount *= 1.75 if 'Paper Phrog' in state['relics'] else 1.5
+        amount *= 1.75 if 'Paper Frog' in state['relics'] else 1.5
     if state['powers'].get('Pen Nib', 0) > 0 or state['relics'].get('Pen Nib') == 9:
         amount *= 2
     if state['powers'].get('Double Damage', 0) > 0:
@@ -477,10 +544,12 @@ def legal_steps(state):
 
 
 def play(before, step):
-    state = deepcopy(before)
+    state = clone_state(before)
     card = next(c for c in state['hand'] if c['uuid'] == step['card_uuid'])
     state['hand'].remove(card)
     ident, kind, target = card['id'], card['type'], step.get('target_index')
+    sharp_hide=[(i,before['enemies'][i]['powers']['Sharp Hide']) for i in live(before)
+                if kind=='ATTACK' and before['enemies'][i]['powers'].get('Sharp Hide')]
     magic = card['magic_number']; upgraded = bool(card.get('upgrades'))
     cost = card['cost']; x = state['energy'] + (2 if 'Chemical X' in state['relics'] else 0)
     free = card.get('free_to_play_once') or ('Corruption' in state['powers'] and kind == 'SKILL')
@@ -556,7 +625,9 @@ def play(before, step):
             apply_power(state, target, 'Strength', -magic, True)
     if ident in {'Thunderclap', 'Shockwave', 'Intimidate'}:
         for i in live(state):
-            if ident != 'Intimidate': apply_power(state, i, 'Vulnerable', magic, True)
+            # Native ThunderClap.use uses literal 1; magicNumber is -1 (N/A).
+            # An unused field must not override this verified fixed effect.
+            if ident != 'Intimidate': apply_power(state, i, 'Vulnerable', 1 if ident == 'Thunderclap' else magic, True)
             if ident != 'Thunderclap': apply_power(state, i, 'Weak', magic, True)
     if ident in {'Inflame', 'Flex', 'Spot Weakness'}:
         if ident != 'Spot Weakness' or (target is not None and state['enemies'][target]['intent'].startswith('ATTACK')):
@@ -591,13 +662,7 @@ def play(before, step):
     for name, pile, count in [('Wild Strike', 'draw_pile', 1), ('Reckless Charge', 'draw_pile', 1), ('Power Through', 'hand', 2), ('Immolate', 'discard_pile', 1)]:
         if ident == name:
             generated_id = 'Dazed' if ident == 'Reckless Charge' else 'Burn' if ident == 'Immolate' else 'Wound'
-            for n in range(count):
-                destination = state['discard_pile'] if pile == 'hand' and len(state['hand']) >= 10 else state[pile]
-                generated = card_state(dict(id=generated_id, uuid=f'@generated:{state["plays"]}:{generated_id}:{n}', type='STATUS', cost=-2,
-                                            ethereal=generated_id == 'Dazed'))
-                destination.append(generated)
-                record_generation(state, generated_id, 'STATUS', uuid=generated['uuid'])
-            if pile == 'draw_pile': state['known_top'] = []
+            add_status_cards(state,generated_id,count,pile,card)
     if ident in {'Pommel Strike', 'Warcry', 'Battle Trance', 'Offering'}: draw(state, magic)
     if ident == 'Deep Breath':
         shuffled = len(state['discard_pile'])
@@ -658,8 +723,18 @@ def play(before, step):
             state['relics']['Letter Opener'] = (max(0, state['relics']['Letter Opener']) + 1) % 3
             if state['relics']['Letter Opener'] == 0:
                 for i in live(state): damage_enemy(state, i, 5, False)
+    # Native SharpHidePower.onUseCard queues one retaliation AFTER card.use's
+    # effects, BEFORE UseCardAction disposes/exhausts the played card. It is not
+    # Thorns and does not trigger once per hit or only on the attacked target.
+    for index,amount in sharp_hide:
+        if state['enemies'][index]['hp']<=0:
+            checkpoint(state,'sharp_hide_on_kill')
+        else:
+            lose_hp(state,amount,blockable=True)
     should_exhaust = (card.get('exhausts') or card.get('exhaust_on_use_once') or ident in EXHAUST or (ident == 'Limit Break' and not upgraded)
                       or (kind == 'SKILL' and 'Corruption' in state['powers']) or kind in {'STATUS', 'CURSE'})
+    if kind!='ATTACK' and state['powers'].get('Hex',0)>0:
+        add_status_cards(state,'Dazed',state['powers']['Hex'],'draw_pile',card)
     if should_exhaust:
         if 'Strange Spoon' in state['relics']: checkpoint(state, 'strange_spoon')
         exhaust(state, card)
@@ -667,16 +742,18 @@ def play(before, step):
     state['plays'] += 1
     for enemy in state['enemies']:
         lose_hp(state, enemy['powers'].get('BeatOfDeath', 0), blockable=True)
-        if enemy['powers'].get('Time Warp', 0): checkpoint(state, 'time_warp')
+        # Counter zero still has the power: the very first play advances it.
+        # Its forced-end ordering is not modeled, so observe after each play.
+        if 'Time Warp' in enemy['powers']: checkpoint(state, 'time_warp')
     if not state['hand'] and 'Unceasing Top' in state['relics']: draw(state, 1)
     refresh_intents(state, before)
     if state['uncertainties']: checkpoint(state, 'unmodeled_effect')
     return state
 
 
-def outcome(state):
+def outcome(state, *, include_position=False):
     """Conservative end-turn estimate; unknown intent remains unknown."""
-    ended = deepcopy(state)
+    ended = clone_state(state)
     pp = ended['powers']
     # GameActionManager.callEndOfTurnActions invokes relics before card/power
     # end-turn effects; Orichalcum observes block before those gains resolve.
@@ -696,9 +773,12 @@ def outcome(state):
         if card['id'] == 'Burn': lose_hp(ended, 4 if card.get('upgrades') else 2, blockable=True)
         if card['id'] == 'Decay': lose_hp(ended, 2, blockable=True)
         if card['id'] == 'Regret': lose_hp(ended, len(ended['hand']), card=True)
+    thief_start=deepcopy(ended['enemies']) if any(e['id'] in {'Looter','Mugger'} for e in ended['enemies']) else None
     incoming = 0; known = True
     for i in live(ended):
         enemy = ended['enemies'][i]
+        if enemy['id']=='GremlinWizard' and enemy['move_id']==2:
+            continue  # CHARGE increments currentCharge; it deals no damage.
         if enemy['intent'].startswith('ATTACK'):
             damage, hits = enemy['damage'], enemy['hits']
             if type(damage) is not int or type(hits) is not int or damage < 0 or hits < 1:
@@ -712,13 +792,15 @@ def outcome(state):
                 if pp.get('Flame Barrier'): damage_enemy(ended, i, pp['Flame Barrier'], False)
                 if 'Bronze Scales' in ended['relics']: damage_enemy(ended, i, 3, False)
                 if ended['enemies'][i]['hp'] <= 0: break
+        elif enemy['id'] in {'SlimeBoss','AcidSlime_L','SpikeSlime_L'} and enemy.get('move_id')==3:
+            pass  # Native SPLIT spawns children; the cancelled attack does not execute.
         elif enemy['intent'] not in {'BUFF', 'DEFEND', 'DEFEND_BUFF', 'SLEEP', 'DEBUFF', 'STRONG_DEBUFF', 'ESCAPE', 'STUN', 'NONE'}:
             known = False
     enemy_hp = [max(0, e['hp']) for e in state['enemies']]
     won = not live(state) and not any(e['half_dead'] for e in state['enemies'])
     reliable = not state['checkpoint'] and not state['uncertainties'] and (won or not ended['checkpoint'])
     if won:
-        ended = deepcopy(state)
+        ended = clone_state(state)
         known = True
     standing_loss = max(0, state['hp'] - ended['hp']) if known else None
     if not reliable:
@@ -730,7 +812,7 @@ def outcome(state):
     pollution = Counter(c['type'] for pile in ('hand', 'draw_pile', 'discard_pile')
                         for c in ended[pile] if c['uuid'] in created_ids and c['type'] in {'STATUS', 'CURSE'})
     exhausted = Counter(c['id'] for c in ended['exhaust_pile'] if c['uuid'] not in state['initial_exhaust_ids'])
-    return dict(enemy_hp=sum(enemy_hp), enemy_hp_by_target=enemy_hp,
+    result = dict(enemy_hp=sum(enemy_hp), enemy_hp_by_target=enemy_hp,
                 enemy_hp_after_turn_by_target=[max(0,e['hp']) for e in ended['enemies']] if reliable and known else None,
                 incoming_hp_loss=max(0, state['hp'] - ended['hp']) if known else None,
                 player_hp_after_turn=ended['hp'] if known else None,
@@ -752,3 +834,13 @@ def outcome(state):
                 combat_won=won and state['hp'] > 0 and reliable,
                 forecast_scope='deterministic' if reliable and known else 'partial',
                 continuation=state['checkpoint'] or ended['checkpoint'])
+    result['interruptions']=deepcopy(state['interruptions'])
+    for interrupted in result['interruptions']:
+        if interrupted['reason']=='slime_split':
+            interrupted['child_hp_each']=state['enemies'][interrupted['target_index']]['hp']
+    from .monsters import economy_forecast
+    result['economy']=economy_forecast(state,thief_start,ended['enemies'])
+    if include_position:
+        from .position import position_context
+        result['position']=position_context(state,ended,result)
+    return result

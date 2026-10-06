@@ -21,7 +21,7 @@ def test_run_accepts_native_power_card_instead_of_strict_whitelist(tmp_path):
     assert any(a['command'] == 'PLAY 1' for a in candidates)
     from slay_jev_spire.selectors import choose_mock
     def choose_power(summary, plans):
-        selected = next(p for p in plans if p['sequence'][0].get('card_id') == 'Feel No Pain')
+        selected = next(p for p in plans if p['sequence'][0].get('card_id')=='Feel No Pain')
         return choose_mock(summary, [selected])
     session = RunSession(tmp_path, mode='mock', selector=choose_power)
     assert session.receive(raw) == ['STATE']

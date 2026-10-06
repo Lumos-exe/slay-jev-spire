@@ -1,0 +1,1022 @@
+[
+  {
+    "name": "slime_split_order",
+    "run_id": "7fffafda-9e32-4cb2-b702-86700df24e12",
+    "step": 94,
+    "summary": {
+      "turn": 2,
+      "player": {
+        "orbs": [],
+        "current_hp": 37,
+        "block": 0,
+        "max_hp": 80,
+        "powers": [],
+        "energy": 3
+      },
+      "hand": [
+        {
+          "uuid": "8d41e61b-f325-42b7-b795-9ed785ad20f0",
+          "id": "Headbutt",
+          "name": "头槌",
+          "cost": 1,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1
+          }
+        },
+        {
+          "uuid": "9d01eeb8-2f81-4ff5-986d-e7f9d8155536",
+          "id": "Bash",
+          "name": "痛击",
+          "cost": 2,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 2
+          }
+        },
+        {
+          "uuid": "e00028bd-3385-4448-8c62-15fca9ca003d",
+          "id": "Defend_R",
+          "name": "防御",
+          "cost": 1,
+          "has_target": false,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1
+          }
+        },
+        {
+          "uuid": "a35fb02b-f79e-4240-a243-2c3e4035e8b2",
+          "id": "Berserk",
+          "name": "狂暴",
+          "cost": 0,
+          "has_target": false,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 0
+          }
+        },
+        {
+          "uuid": "957bae8a-c560-4d52-b5ac-e0175a19e440",
+          "id": "Feel No Pain",
+          "name": "无惧疼痛",
+          "cost": 1,
+          "has_target": false,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1
+          }
+        }
+      ],
+      "enemies": [
+        {
+          "id": "AcidSlime_L",
+          "entity_id": "b2126a3c-fa72-41ae-8d1d-76dd820d6b25",
+          "current_hp": 54,
+          "move_id": 2,
+          "intent": "ATTACK",
+          "is_gone": false,
+          "half_dead": false
+        }
+      ],
+      "potions": [
+        {
+          "requires_target": false,
+          "can_use": false,
+          "potency": 0,
+          "can_discard": false,
+          "native_description": "在战斗中使用药水来获得 #g增益 或 #r阻挠 敌人。",
+          "native_fields": {
+            "class_fields": {
+              "POTION_ID": "Potion Slot"
+            },
+            "instance_fields": {},
+            "unexported_object_fields": [
+              "potionStrings"
+            ]
+          },
+          "native_mechanics": {
+            "overridden_callbacks": [
+              "getPotency(int,)",
+              "makeCopy()",
+              "use(AbstractCreature,)"
+            ],
+            "scope": "Raw subclass fields captured per native decision revision; class values and visual/cache fields do not override normalized live card values. Callbacks/fields are not full effect semantics. Complex unexported fields are listed explicitly.",
+            "java_class": "com.megacrit.cardcrawl.potions.PotionSlot"
+          },
+          "name": "药水栏",
+          "id": "Potion Slot"
+        },
+        {
+          "requires_target": false,
+          "can_use": false,
+          "potency": 0,
+          "can_discard": false,
+          "native_description": "在战斗中使用药水来获得 #g增益 或 #r阻挠 敌人。",
+          "native_fields": {
+            "class_fields": {
+              "POTION_ID": "Potion Slot"
+            },
+            "instance_fields": {},
+            "unexported_object_fields": [
+              "potionStrings"
+            ]
+          },
+          "native_mechanics": {
+            "overridden_callbacks": [
+              "getPotency(int,)",
+              "makeCopy()",
+              "use(AbstractCreature,)"
+            ],
+            "scope": "Raw subclass fields captured per native decision revision; class values and visual/cache fields do not override normalized live card values. Callbacks/fields are not full effect semantics. Complex unexported fields are listed explicitly.",
+            "java_class": "com.megacrit.cardcrawl.potions.PotionSlot"
+          },
+          "name": "药水栏",
+          "id": "Potion Slot"
+        },
+        {
+          "requires_target": false,
+          "can_use": false,
+          "potency": 0,
+          "can_discard": false,
+          "native_description": "在战斗中使用药水来获得 #g增益 或 #r阻挠 敌人。",
+          "native_fields": {
+            "class_fields": {
+              "POTION_ID": "Potion Slot"
+            },
+            "instance_fields": {},
+            "unexported_object_fields": [
+              "potionStrings"
+            ]
+          },
+          "native_mechanics": {
+            "overridden_callbacks": [
+              "getPotency(int,)",
+              "makeCopy()",
+              "use(AbstractCreature,)"
+            ],
+            "scope": "Raw subclass fields captured per native decision revision; class values and visual/cache fields do not override normalized live card values. Callbacks/fields are not full effect semantics. Complex unexported fields are listed explicitly.",
+            "java_class": "com.megacrit.cardcrawl.potions.PotionSlot"
+          },
+          "name": "药水栏",
+          "id": "Potion Slot"
+        }
+      ],
+      "relics": [
+        {
+          "id": "Burning Blood"
+        }
+      ]
+    },
+    "actions": [
+      {
+        "id": "play_1_0",
+        "kind": "play",
+        "command": "PLAY 1 0",
+        "card_uuid": "8d41e61b-f325-42b7-b795-9ed785ad20f0",
+        "target_index": 0
+      },
+      {
+        "id": "play_2_0",
+        "kind": "play",
+        "command": "PLAY 2 0",
+        "card_uuid": "9d01eeb8-2f81-4ff5-986d-e7f9d8155536",
+        "target_index": 0
+      },
+      {
+        "id": "play_3",
+        "kind": "play",
+        "command": "PLAY 3",
+        "card_uuid": "e00028bd-3385-4448-8c62-15fca9ca003d",
+        "target_index": null
+      },
+      {
+        "id": "play_4",
+        "kind": "play",
+        "command": "PLAY 4",
+        "card_uuid": "a35fb02b-f79e-4240-a243-2c3e4035e8b2",
+        "target_index": null
+      },
+      {
+        "id": "play_5",
+        "kind": "play",
+        "command": "PLAY 5",
+        "card_uuid": "957bae8a-c560-4d52-b5ac-e0175a19e440",
+        "target_index": null
+      },
+      {
+        "id": "end",
+        "kind": "end",
+        "command": "END",
+        "card_uuid": null,
+        "target_index": null
+      }
+    ],
+    "witness": {
+      "ordered_cards": [
+        "Bash",
+        "Headbutt"
+      ],
+      "target": 0
+    }
+  },
+  {
+    "name": "guardian_interrupt",
+    "run_id": "298b8d25-5ebb-43ae-bba6-52d2cb43f9b0",
+    "step": 175,
+    "summary": {
+      "turn": 2,
+      "player": {
+        "orbs": [],
+        "current_hp": 70,
+        "block": 0,
+        "max_hp": 80,
+        "powers": [],
+        "energy": 3
+      },
+      "hand": [
+        {
+          "uuid": "672ac547-17ca-42ee-9cbc-6070cdf90f7b",
+          "id": "Body Slam",
+          "name": "全身撞击",
+          "cost": 1,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1
+          }
+        },
+        {
+          "uuid": "ef5e512d-b3cf-4579-80c5-076ff9aa49ce",
+          "id": "Strike_R",
+          "name": "打击",
+          "cost": 1,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1
+          }
+        },
+        {
+          "uuid": "33b59804-fe76-41af-af3d-6b8ac9275869",
+          "id": "Uppercut",
+          "name": "上勾拳",
+          "cost": 2,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 2
+          }
+        },
+        {
+          "uuid": "1eeb6874-07b5-4830-9908-2fc38f9d055f",
+          "id": "Strike_R",
+          "name": "打击",
+          "cost": 1,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1
+          }
+        },
+        {
+          "uuid": "5ad45d88-67ac-4d59-9670-cb7c3f1824b5",
+          "id": "Pommel Strike",
+          "name": "剑柄打击",
+          "cost": 1,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1
+          }
+        }
+      ],
+      "enemies": [
+        {
+          "id": "TheGuardian",
+          "entity_id": "9204c95c-4767-478f-a416-979ec4c9f6bc",
+          "current_hp": 220,
+          "move_id": 2,
+          "intent": "ATTACK",
+          "is_gone": false,
+          "half_dead": false
+        }
+      ],
+      "potions": [
+        {
+          "requires_target": false,
+          "can_use": false,
+          "potency": 0,
+          "can_discard": false,
+          "native_description": "在战斗中使用药水来获得 #g增益 或 #r阻挠 敌人。",
+          "native_fields": {
+            "class_fields": {
+              "POTION_ID": "Potion Slot"
+            },
+            "instance_fields": {},
+            "unexported_object_fields": [
+              "potionStrings"
+            ]
+          },
+          "native_mechanics": {
+            "overridden_callbacks": [
+              "getPotency(int,)",
+              "makeCopy()",
+              "use(AbstractCreature,)"
+            ],
+            "scope": "Raw subclass fields captured per native decision revision; class values and visual/cache fields do not override normalized live card values. Callbacks/fields are not full effect semantics. Complex unexported fields are listed explicitly.",
+            "java_class": "com.megacrit.cardcrawl.potions.PotionSlot"
+          },
+          "name": "药水栏",
+          "id": "Potion Slot"
+        },
+        {
+          "requires_target": false,
+          "can_use": false,
+          "potency": 0,
+          "can_discard": false,
+          "native_description": "在战斗中使用药水来获得 #g增益 或 #r阻挠 敌人。",
+          "native_fields": {
+            "class_fields": {
+              "POTION_ID": "Potion Slot"
+            },
+            "instance_fields": {},
+            "unexported_object_fields": [
+              "potionStrings"
+            ]
+          },
+          "native_mechanics": {
+            "overridden_callbacks": [
+              "getPotency(int,)",
+              "makeCopy()",
+              "use(AbstractCreature,)"
+            ],
+            "scope": "Raw subclass fields captured per native decision revision; class values and visual/cache fields do not override normalized live card values. Callbacks/fields are not full effect semantics. Complex unexported fields are listed explicitly.",
+            "java_class": "com.megacrit.cardcrawl.potions.PotionSlot"
+          },
+          "name": "药水栏",
+          "id": "Potion Slot"
+        },
+        {
+          "requires_target": false,
+          "can_use": false,
+          "potency": 0,
+          "can_discard": false,
+          "native_description": "在战斗中使用药水来获得 #g增益 或 #r阻挠 敌人。",
+          "native_fields": {
+            "class_fields": {
+              "POTION_ID": "Potion Slot"
+            },
+            "instance_fields": {},
+            "unexported_object_fields": [
+              "potionStrings"
+            ]
+          },
+          "native_mechanics": {
+            "overridden_callbacks": [
+              "getPotency(int,)",
+              "makeCopy()",
+              "use(AbstractCreature,)"
+            ],
+            "scope": "Raw subclass fields captured per native decision revision; class values and visual/cache fields do not override normalized live card values. Callbacks/fields are not full effect semantics. Complex unexported fields are listed explicitly.",
+            "java_class": "com.megacrit.cardcrawl.potions.PotionSlot"
+          },
+          "name": "药水栏",
+          "id": "Potion Slot"
+        }
+      ],
+      "relics": [
+        {
+          "id": "Burning Blood"
+        },
+        {
+          "id": "Bird Faced Urn"
+        }
+      ]
+    },
+    "actions": [
+      {
+        "id": "play_1_0",
+        "kind": "play",
+        "command": "PLAY 1 0",
+        "card_uuid": "672ac547-17ca-42ee-9cbc-6070cdf90f7b",
+        "target_index": 0
+      },
+      {
+        "id": "play_2_0",
+        "kind": "play",
+        "command": "PLAY 2 0",
+        "card_uuid": "ef5e512d-b3cf-4579-80c5-076ff9aa49ce",
+        "target_index": 0
+      },
+      {
+        "id": "play_3_0",
+        "kind": "play",
+        "command": "PLAY 3 0",
+        "card_uuid": "33b59804-fe76-41af-af3d-6b8ac9275869",
+        "target_index": 0
+      },
+      {
+        "id": "play_4_0",
+        "kind": "play",
+        "command": "PLAY 4 0",
+        "card_uuid": "1eeb6874-07b5-4830-9908-2fc38f9d055f",
+        "target_index": 0
+      },
+      {
+        "id": "play_5_0",
+        "kind": "play",
+        "command": "PLAY 5 0",
+        "card_uuid": "5ad45d88-67ac-4d59-9670-cb7c3f1824b5",
+        "target_index": 0
+      },
+      {
+        "id": "end",
+        "kind": "end",
+        "command": "END",
+        "card_uuid": null,
+        "target_index": null
+      }
+    ],
+    "witness": {
+      "ordered_cards": [
+        "Uppercut",
+        "Strike_R"
+      ],
+      "target": 0
+    }
+  },
+  {
+    "name": "slime_survival",
+    "run_id": "ec1aadf1-02ec-439d-90a2-7fde112953d9",
+    "step": 118,
+    "summary": {
+      "turn": 4,
+      "player": {
+        "orbs": [],
+        "current_hp": 16,
+        "block": 0,
+        "max_hp": 80,
+        "powers": [],
+        "energy": 3
+      },
+      "hand": [
+        {
+          "uuid": "cb336b00-40b5-48ef-8b06-fa4ddb7c0b4c",
+          "id": "Strike_R",
+          "name": "打击",
+          "cost": 1,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1
+          }
+        },
+        {
+          "uuid": "64e8931d-6588-4048-bad7-653af02ee3c4",
+          "id": "Flame Barrier",
+          "name": "火焰屏障",
+          "cost": 2,
+          "has_target": false,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 2
+          }
+        },
+        {
+          "uuid": "ae8f6ca2-1d8f-42f0-bbd3-5a9b54ca9f99",
+          "id": "Slimed",
+          "name": "黏液",
+          "cost": 1,
+          "has_target": false,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1
+          }
+        },
+        {
+          "uuid": "4f1002dc-de2a-4f40-977c-fe8fe55c76bb",
+          "id": "Bash",
+          "name": "痛击",
+          "cost": 2,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 2
+          }
+        },
+        {
+          "uuid": "a66fa3d9-5988-48b8-b037-58c13d09bff3",
+          "id": "Armaments",
+          "name": "武装",
+          "cost": 1,
+          "has_target": false,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1
+          }
+        }
+      ],
+      "enemies": [
+        {
+          "id": "AcidSlime_M",
+          "entity_id": "30aa9007-89e1-478a-b7fa-e2aa5ae2f9e3",
+          "current_hp": 30,
+          "move_id": 2,
+          "intent": "ATTACK",
+          "is_gone": false,
+          "half_dead": false
+        },
+        {
+          "id": "AcidSlime_L",
+          "entity_id": "6fb1dc04-b9da-48d8-914f-1cf546ba50f4",
+          "current_hp": 0,
+          "move_id": 3,
+          "intent": "UNKNOWN",
+          "is_gone": true,
+          "half_dead": false
+        },
+        {
+          "id": "AcidSlime_M",
+          "entity_id": "ae58cb54-04af-4781-b0b4-c498fa5ea267",
+          "current_hp": 30,
+          "move_id": 1,
+          "intent": "ATTACK_DEBUFF",
+          "is_gone": false,
+          "half_dead": false
+        }
+      ],
+      "potions": [
+        {
+          "requires_target": false,
+          "can_use": false,
+          "potency": 0,
+          "can_discard": false,
+          "native_description": "在战斗中使用药水来获得 #g增益 或 #r阻挠 敌人。",
+          "native_fields": {
+            "class_fields": {
+              "POTION_ID": "Potion Slot"
+            },
+            "instance_fields": {},
+            "unexported_object_fields": [
+              "potionStrings"
+            ]
+          },
+          "native_mechanics": {
+            "overridden_callbacks": [
+              "getPotency(int,)",
+              "makeCopy()",
+              "use(AbstractCreature,)"
+            ],
+            "scope": "Raw subclass fields captured per native decision revision; class values and visual/cache fields do not override normalized live card values. Callbacks/fields are not full effect semantics. Complex unexported fields are listed explicitly.",
+            "java_class": "com.megacrit.cardcrawl.potions.PotionSlot"
+          },
+          "name": "药水栏",
+          "id": "Potion Slot"
+        },
+        {
+          "requires_target": false,
+          "can_use": false,
+          "potency": 0,
+          "can_discard": false,
+          "native_description": "在战斗中使用药水来获得 #g增益 或 #r阻挠 敌人。",
+          "native_fields": {
+            "class_fields": {
+              "POTION_ID": "Potion Slot"
+            },
+            "instance_fields": {},
+            "unexported_object_fields": [
+              "potionStrings"
+            ]
+          },
+          "native_mechanics": {
+            "overridden_callbacks": [
+              "getPotency(int,)",
+              "makeCopy()",
+              "use(AbstractCreature,)"
+            ],
+            "scope": "Raw subclass fields captured per native decision revision; class values and visual/cache fields do not override normalized live card values. Callbacks/fields are not full effect semantics. Complex unexported fields are listed explicitly.",
+            "java_class": "com.megacrit.cardcrawl.potions.PotionSlot"
+          },
+          "name": "药水栏",
+          "id": "Potion Slot"
+        },
+        {
+          "requires_target": false,
+          "can_use": false,
+          "potency": 0,
+          "can_discard": false,
+          "native_description": "在战斗中使用药水来获得 #g增益 或 #r阻挠 敌人。",
+          "native_fields": {
+            "class_fields": {
+              "POTION_ID": "Potion Slot"
+            },
+            "instance_fields": {},
+            "unexported_object_fields": [
+              "potionStrings"
+            ]
+          },
+          "native_mechanics": {
+            "overridden_callbacks": [
+              "getPotency(int,)",
+              "makeCopy()",
+              "use(AbstractCreature,)"
+            ],
+            "scope": "Raw subclass fields captured per native decision revision; class values and visual/cache fields do not override normalized live card values. Callbacks/fields are not full effect semantics. Complex unexported fields are listed explicitly.",
+            "java_class": "com.megacrit.cardcrawl.potions.PotionSlot"
+          },
+          "name": "药水栏",
+          "id": "Potion Slot"
+        }
+      ],
+      "relics": [
+        {
+          "id": "Burning Blood"
+        }
+      ]
+    },
+    "actions": [
+      {
+        "id": "play_1_0",
+        "kind": "play",
+        "command": "PLAY 1 0",
+        "card_uuid": "cb336b00-40b5-48ef-8b06-fa4ddb7c0b4c",
+        "target_index": 0
+      },
+      {
+        "id": "play_1_2",
+        "kind": "play",
+        "command": "PLAY 1 2",
+        "card_uuid": "cb336b00-40b5-48ef-8b06-fa4ddb7c0b4c",
+        "target_index": 2
+      },
+      {
+        "id": "play_2",
+        "kind": "play",
+        "command": "PLAY 2",
+        "card_uuid": "64e8931d-6588-4048-bad7-653af02ee3c4",
+        "target_index": null
+      },
+      {
+        "id": "play_3",
+        "kind": "play",
+        "command": "PLAY 3",
+        "card_uuid": "ae8f6ca2-1d8f-42f0-bbd3-5a9b54ca9f99",
+        "target_index": null
+      },
+      {
+        "id": "play_4_0",
+        "kind": "play",
+        "command": "PLAY 4 0",
+        "card_uuid": "4f1002dc-de2a-4f40-977c-fe8fe55c76bb",
+        "target_index": 0
+      },
+      {
+        "id": "play_4_2",
+        "kind": "play",
+        "command": "PLAY 4 2",
+        "card_uuid": "4f1002dc-de2a-4f40-977c-fe8fe55c76bb",
+        "target_index": 2
+      },
+      {
+        "id": "play_5",
+        "kind": "play",
+        "command": "PLAY 5",
+        "card_uuid": "a66fa3d9-5988-48b8-b037-58c13d09bff3",
+        "target_index": null
+      },
+      {
+        "id": "end",
+        "kind": "end",
+        "command": "END",
+        "card_uuid": null,
+        "target_index": null
+      }
+    ],
+    "witness": {
+      "contains_any_card": [
+        "Flame Barrier",
+        "Armaments"
+      ]
+    }
+  },
+  {
+    "name": "cultist_three_strikes",
+    "run_id": "fe92ea5d-b8ee-47f5-880f-c4a98993c136",
+    "step": 7,
+    "summary": {
+      "turn": 1,
+      "player": {
+        "orbs": [],
+        "current_hp": 80,
+        "block": 0,
+        "max_hp": 80,
+        "powers": [],
+        "energy": 3
+      },
+      "hand": [
+        {
+          "uuid": "10485966-de57-44ff-a9dc-a99ca771b0b3",
+          "id": "Defend_R",
+          "name": "防御",
+          "cost": 1,
+          "has_target": false,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1
+          }
+        },
+        {
+          "uuid": "a4e8a805-b228-4aa8-a55e-cbfa88fa9b7b",
+          "id": "Strike_R",
+          "name": "打击",
+          "cost": 1,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1
+          }
+        },
+        {
+          "uuid": "850a6954-d29e-4728-a7b4-93fd716ae7dc",
+          "id": "Strike_R",
+          "name": "打击",
+          "cost": 1,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1
+          }
+        },
+        {
+          "uuid": "017c9fd3-acb5-4a4d-b405-a9bd7bc10444",
+          "id": "Strike_R",
+          "name": "打击",
+          "cost": 1,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1
+          }
+        },
+        {
+          "uuid": "4fbca994-0774-48d7-aa3d-760773897ce3",
+          "id": "Defend_R",
+          "name": "防御",
+          "cost": 1,
+          "has_target": false,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1
+          }
+        }
+      ],
+      "enemies": [
+        {
+          "is_gone": false,
+          "move_hits": 1,
+          "move_base_damage": -1,
+          "damage_catalog": {
+            "entries": [
+              {
+                "adjusted": 6,
+                "type": "NORMAL",
+                "base": 6
+              }
+            ],
+            "scope": "Loaded native damage entries, not a selected attack or predicted action outcome; current intent is separate."
+          },
+          "half_dead": false,
+          "move_adjusted_damage": null,
+          "max_hp": 54,
+          "entity_id": "1982ba4c-c340-442b-aab5-08edc1104c44",
+          "intent": "BUFF",
+          "move_name": "念咒",
+          "native_fields": {
+            "class_fields": {
+              "ATTACK_DMG": 6,
+              "A_2_HP_MAX": 56,
+              "A_2_HP_MIN": 50,
+              "A_2_RITUAL_AMT": 4,
+              "DARK_STRIKE": 1,
+              "DIALOG": [
+                "@我的力量@ NL @无人能及！@",
+                "@你不属于@ NL @这里！@",
+                "~我的力量~ NL ~有人能及啊……~"
+              ],
+              "HB_H": 240.0,
+              "HB_W": 230.0,
+              "HB_X": -8.0,
+              "HB_Y": 10.0,
+              "HP_MAX": 54,
+              "HP_MIN": 48,
+              "ID": "Cultist",
+              "INCANTATION": 3,
+              "INCANTATION_NAME": "念咒",
+              "MOVES": [
+                "",
+                "",
+                "念咒"
+              ],
+              "MURDER_ENCOUNTER_KEY": "Murder of Cultists",
+              "NAME": "邪教徒",
+              "RITUAL_AMT": 3
+            },
+            "instance_fields": {
+              "firstMove": false,
+              "ritualAmount": 3,
+              "saidPower": false,
+              "talky": false
+            },
+            "unexported_object_fields": [
+              "monsterStrings"
+            ]
+          },
+          "move_id": 3,
+          "native_mechanics": {
+            "overridden_callbacks": [
+              "die()",
+              "getMove(int,)",
+              "takeTurn()"
+            ],
+            "scope": "Raw subclass fields captured per native decision revision; class values and visual/cache fields do not override normalized live card values. Callbacks/fields are not full effect semantics. Complex unexported fields are listed explicitly.",
+            "java_class": "com.megacrit.cardcrawl.monsters.exordium.Cultist"
+          },
+          "name": "邪教徒",
+          "current_hp": 54,
+          "block": 0,
+          "id": "Cultist",
+          "powers": [],
+          "target_index": 0
+        }
+      ],
+      "relics": [
+        {
+          "native_description": "在战斗结束时，回复 #b6 点生命。",
+          "native_fields": {
+            "class_fields": {
+              "HEALTH_AMT": 6,
+              "ID": "Burning Blood"
+            },
+            "instance_fields": {}
+          },
+          "native_mechanics": {
+            "overridden_callbacks": [
+              "getUpdatedDescription()",
+              "makeCopy()",
+              "onVictory()"
+            ],
+            "scope": "Raw subclass fields captured per native decision revision; class values and visual/cache fields do not override normalized live card values. Callbacks/fields are not full effect semantics. Complex unexported fields are listed explicitly.",
+            "java_class": "com.megacrit.cardcrawl.relics.BurningBlood"
+          },
+          "name": "燃烧之血",
+          "used_up": false,
+          "id": "Burning Blood",
+          "counter": -1,
+          "catalog_ref": {
+            "kind": "relics",
+            "id": "Burning Blood",
+            "version": "3ed7b35e4f36fb60aafa21eea5f36b9d022e23a445d801fe1fef51b1320c6c5d"
+          },
+          "description": "在战斗结束时，回复 #b6 点生命。",
+          "dynamic_values_unknown": false
+        }
+      ],
+      "potions": [
+        {
+          "requires_target": false,
+          "can_use": false,
+          "potency": 0,
+          "can_discard": false,
+          "native_description": "在战斗中使用药水来获得 #g增益 或 #r阻挠 敌人。",
+          "native_fields": {
+            "class_fields": {
+              "POTION_ID": "Potion Slot"
+            },
+            "instance_fields": {},
+            "unexported_object_fields": [
+              "potionStrings"
+            ]
+          },
+          "native_mechanics": {
+            "overridden_callbacks": [
+              "getPotency(int,)",
+              "makeCopy()",
+              "use(AbstractCreature,)"
+            ],
+            "scope": "Raw subclass fields captured per native decision revision; class values and visual/cache fields do not override normalized live card values. Callbacks/fields are not full effect semantics. Complex unexported fields are listed explicitly.",
+            "java_class": "com.megacrit.cardcrawl.potions.PotionSlot"
+          },
+          "name": "药水栏",
+          "id": "Potion Slot"
+        },
+        {
+          "requires_target": false,
+          "can_use": false,
+          "potency": 0,
+          "can_discard": false,
+          "native_description": "在战斗中使用药水来获得 #g增益 或 #r阻挠 敌人。",
+          "native_fields": {
+            "class_fields": {
+              "POTION_ID": "Potion Slot"
+            },
+            "instance_fields": {},
+            "unexported_object_fields": [
+              "potionStrings"
+            ]
+          },
+          "native_mechanics": {
+            "overridden_callbacks": [
+              "getPotency(int,)",
+              "makeCopy()",
+              "use(AbstractCreature,)"
+            ],
+            "scope": "Raw subclass fields captured per native decision revision; class values and visual/cache fields do not override normalized live card values. Callbacks/fields are not full effect semantics. Complex unexported fields are listed explicitly.",
+            "java_class": "com.megacrit.cardcrawl.potions.PotionSlot"
+          },
+          "name": "药水栏",
+          "id": "Potion Slot"
+        },
+        {
+          "requires_target": false,
+          "can_use": false,
+          "potency": 0,
+          "can_discard": false,
+          "native_description": "在战斗中使用药水来获得 #g增益 或 #r阻挠 敌人。",
+          "native_fields": {
+            "class_fields": {
+              "POTION_ID": "Potion Slot"
+            },
+            "instance_fields": {},
+            "unexported_object_fields": [
+              "potionStrings"
+            ]
+          },
+          "native_mechanics": {
+            "overridden_callbacks": [
+              "getPotency(int,)",
+              "makeCopy()",
+              "use(AbstractCreature,)"
+            ],
+            "scope": "Raw subclass fields captured per native decision revision; class values and visual/cache fields do not override normalized live card values. Callbacks/fields are not full effect semantics. Complex unexported fields are listed explicitly.",
+            "java_class": "com.megacrit.cardcrawl.potions.PotionSlot"
+          },
+          "name": "药水栏",
+          "id": "Potion Slot"
+        }
+      ]
+    },
+    "actions": [
+      {
+        "id": "end",
+        "kind": "end",
+        "command": "END"
+      },
+      {
+        "id": "10485966-de57-44ff-a9dc-a99ca771b0b3",
+        "kind": "play",
+        "card_uuid": "10485966-de57-44ff-a9dc-a99ca771b0b3",
+        "target_index": null,
+        "command": "PLAY 1"
+      },
+      {
+        "id": "a4e8a805-b228-4aa8-a55e-cbfa88fa9b7b",
+        "kind": "play",
+        "card_uuid": "a4e8a805-b228-4aa8-a55e-cbfa88fa9b7b",
+        "target_index": 0,
+        "command": "PLAY 2 0"
+      },
+      {
+        "id": "850a6954-d29e-4728-a7b4-93fd716ae7dc",
+        "kind": "play",
+        "card_uuid": "850a6954-d29e-4728-a7b4-93fd716ae7dc",
+        "target_index": 0,
+        "command": "PLAY 3 0"
+      },
+      {
+        "id": "017c9fd3-acb5-4a4d-b405-a9bd7bc10444",
+        "kind": "play",
+        "card_uuid": "017c9fd3-acb5-4a4d-b405-a9bd7bc10444",
+        "target_index": 0,
+        "command": "PLAY 4 0"
+      },
+      {
+        "id": "4fbca994-0774-48d7-aa3d-760773897ce3",
+        "kind": "play",
+        "card_uuid": "4fbca994-0774-48d7-aa3d-760773897ce3",
+        "target_index": null,
+        "command": "PLAY 5"
+      }
+    ],
+    "witness": {
+      "ordered_cards": [
+        "Strike_R",
+        "Strike_R",
+        "Strike_R"
+      ],
+      "target": 0
+    }
+  }
+]

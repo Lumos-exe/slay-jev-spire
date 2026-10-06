@@ -1,0 +1,2294 @@
+{
+  "summary": {
+    "turn": 1,
+    "player": {
+      "orbs": [],
+      "current_hp": 88,
+      "block": 0,
+      "max_hp": 88,
+      "powers": [],
+      "energy": 3
+    },
+    "hand": [
+      {
+        "exhausts": false,
+        "cost": 1,
+        "target_type": "ENEMY",
+        "free_to_play_once": false,
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "4735cdc0-81e7-419f-96bc-a151a9463bf9",
+        "upgrades": 0,
+        "raw_description": "造成 !D! 点伤害。",
+        "target_damage_previews": [
+          {
+            "target_index": 0,
+            "damage_before_block": 6,
+            "scope": "current_state_damage_calculation_not_action_simulation",
+            "source": "game_calculateCardDamage"
+          },
+          {
+            "target_index": 1,
+            "damage_before_block": 6,
+            "scope": "current_state_damage_calculation_not_action_simulation",
+            "source": "game_calculateCardDamage"
+          }
+        ],
+        "has_target": true,
+        "valid_target_indices": [
+          0,
+          1
+        ],
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 1,
+          "base_block": -1,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": 9
+        },
+        "name": "打击",
+        "can_upgrade": true,
+        "id": "Strike_R",
+        "native_values": {
+          "damage": 6,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": -1,
+          "cost_for_turn": 1,
+          "block_modified": false,
+          "scope": "current_hand_card_fields",
+          "block": 0,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": 6
+        },
+        "rarity": "BASIC",
+        "effect": "unknown",
+        "hand_index": 0,
+        "play_index": 1,
+        "card_uuid": "4735cdc0-81e7-419f-96bc-a151a9463bf9",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "造成 6 点伤害。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 1,
+        "target_type": "SELF",
+        "free_to_play_once": false,
+        "type": "SKILL",
+        "ethereal": false,
+        "uuid": "f1981652-d8ca-4779-b278-067f44743d60",
+        "upgrades": 0,
+        "raw_description": "获得 !B! 点 格挡 。",
+        "has_target": false,
+        "valid_target_indices": [
+          0,
+          1
+        ],
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 1,
+          "base_block": 8,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": -1
+        },
+        "name": "防御",
+        "can_upgrade": true,
+        "id": "Defend_R",
+        "native_values": {
+          "damage": 0,
+          "magic_number_modified": false,
+          "damage_modified": true,
+          "base_block": 5,
+          "cost_for_turn": 1,
+          "block_modified": false,
+          "scope": "current_hand_card_fields",
+          "block": 5,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": -1
+        },
+        "rarity": "BASIC",
+        "effect": "unknown",
+        "hand_index": 1,
+        "play_index": 2,
+        "card_uuid": "f1981652-d8ca-4779-b278-067f44743d60",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "获得 5 点 格挡 。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 0,
+        "target_type": "ENEMY",
+        "free_to_play_once": false,
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "12a0d5b8-3c30-44b3-888c-562b64b84361",
+        "upgrades": 0,
+        "raw_description": "造成 !D! 点伤害。 NL 将一张 *晕眩 放入你的抽牌堆中。",
+        "target_damage_previews": [
+          {
+            "target_index": 0,
+            "damage_before_block": 7,
+            "scope": "current_state_damage_calculation_not_action_simulation",
+            "source": "game_calculateCardDamage"
+          },
+          {
+            "target_index": 1,
+            "damage_before_block": 7,
+            "scope": "current_state_damage_calculation_not_action_simulation",
+            "source": "game_calculateCardDamage"
+          }
+        ],
+        "has_target": true,
+        "valid_target_indices": [
+          0,
+          1
+        ],
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 0,
+          "base_block": -1,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": 10
+        },
+        "name": "无谋冲锋",
+        "can_upgrade": true,
+        "id": "Reckless Charge",
+        "native_values": {
+          "damage": 7,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": -1,
+          "cost_for_turn": 0,
+          "block_modified": false,
+          "scope": "current_hand_card_fields",
+          "block": 0,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": 7
+        },
+        "rarity": "UNCOMMON",
+        "effect": "unknown",
+        "hand_index": 2,
+        "play_index": 3,
+        "card_uuid": "12a0d5b8-3c30-44b3-888c-562b64b84361",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "造成 7 点伤害。 NL 将一张 *晕眩 放入你的抽牌堆中。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 2,
+        "target_type": "ENEMY",
+        "free_to_play_once": false,
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "ead23b35-b7a6-4c90-8174-51ff7fecfbb7",
+        "upgrades": 0,
+        "raw_description": "造成 !D! 点伤害。 NL 给予 !M! 层 易伤 。",
+        "target_damage_previews": [
+          {
+            "target_index": 0,
+            "damage_before_block": 8,
+            "scope": "current_state_damage_calculation_not_action_simulation",
+            "source": "game_calculateCardDamage"
+          },
+          {
+            "target_index": 1,
+            "damage_before_block": 8,
+            "scope": "current_state_damage_calculation_not_action_simulation",
+            "source": "game_calculateCardDamage"
+          }
+        ],
+        "has_target": true,
+        "valid_target_indices": [
+          0,
+          1
+        ],
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 2,
+          "base_block": -1,
+          "magic_number": 3,
+          "upgrades": 1,
+          "base_damage": 10
+        },
+        "name": "痛击",
+        "can_upgrade": true,
+        "id": "Bash",
+        "native_values": {
+          "damage": 8,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": -1,
+          "cost_for_turn": 2,
+          "block_modified": false,
+          "scope": "current_hand_card_fields",
+          "block": 0,
+          "base_magic_number": 2,
+          "source": "game_card_fields",
+          "magic_number": 2,
+          "base_damage": 8
+        },
+        "rarity": "BASIC",
+        "effect": "unknown",
+        "hand_index": 3,
+        "play_index": 4,
+        "card_uuid": "ead23b35-b7a6-4c90-8174-51ff7fecfbb7",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "造成 8 点伤害。 NL 给予 2 层 易伤 。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 1,
+        "target_type": "SELF",
+        "free_to_play_once": false,
+        "type": "SKILL",
+        "ethereal": false,
+        "uuid": "9e29a13e-ed2d-47ce-9935-b8012f303ef1",
+        "upgrades": 0,
+        "raw_description": "获得 !B! 点 格挡 。",
+        "has_target": false,
+        "valid_target_indices": [
+          0,
+          1
+        ],
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 1,
+          "base_block": 8,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": -1
+        },
+        "name": "防御",
+        "can_upgrade": true,
+        "id": "Defend_R",
+        "native_values": {
+          "damage": 0,
+          "magic_number_modified": false,
+          "damage_modified": true,
+          "base_block": 5,
+          "cost_for_turn": 1,
+          "block_modified": false,
+          "scope": "current_hand_card_fields",
+          "block": 5,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": -1
+        },
+        "rarity": "BASIC",
+        "effect": "unknown",
+        "hand_index": 4,
+        "play_index": 5,
+        "card_uuid": "9e29a13e-ed2d-47ce-9935-b8012f303ef1",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "获得 5 点 格挡 。",
+        "dynamic_values_unknown": false
+      }
+    ],
+    "enemies": [
+      {
+        "is_gone": false,
+        "move_hits": 1,
+        "move_base_damage": 5,
+        "half_dead": false,
+        "move_adjusted_damage": 5,
+        "max_hp": 11,
+        "intent": "ATTACK",
+        "move_id": 3,
+        "name": "虱虫",
+        "current_hp": 11,
+        "block": 0,
+        "id": "FuzzyLouseDefensive",
+        "powers": [
+          {
+            "amount": 5,
+            "native_description": "当受到 #y攻击 伤害时，蜷起身子并获得 5 点 #y格挡 。（每场战斗一次）",
+            "name": "蜷身",
+            "id": "Curl Up",
+            "power_type": "BUFF",
+            "is_turn_based": false,
+            "effect": "unknown",
+            "description": "当受到 #y攻击 伤害时，蜷起身子并获得 5 点 #y格挡 。（每场战斗一次）",
+            "dynamic_values_unknown": false
+          }
+        ],
+        "target_index": 0
+      },
+      {
+        "is_gone": false,
+        "move_hits": 1,
+        "move_base_damage": 7,
+        "half_dead": false,
+        "move_adjusted_damage": 7,
+        "max_hp": 13,
+        "intent": "ATTACK",
+        "move_id": 3,
+        "name": "虱虫",
+        "current_hp": 13,
+        "block": 0,
+        "id": "FuzzyLouseDefensive",
+        "powers": [
+          {
+            "amount": 5,
+            "native_description": "当受到 #y攻击 伤害时，蜷起身子并获得 5 点 #y格挡 。（每场战斗一次）",
+            "name": "蜷身",
+            "id": "Curl Up",
+            "power_type": "BUFF",
+            "is_turn_based": false,
+            "effect": "unknown",
+            "description": "当受到 #y攻击 伤害时，蜷起身子并获得 5 点 #y格挡 。（每场战斗一次）",
+            "dynamic_values_unknown": false
+          }
+        ],
+        "target_index": 1
+      }
+    ],
+    "draw_order_known": false,
+    "turn_counters": {
+      "attacks_played": 0,
+      "skills_played": 0,
+      "attacks_this_combat": 0,
+      "cards_played": 0
+    },
+    "energy_per_turn": 3,
+    "draw_per_turn": 5,
+    "draw_pile": [
+      {
+        "exhausts": false,
+        "cost": 1,
+        "target_type": "SELF",
+        "free_to_play_once": false,
+        "type": "SKILL",
+        "ethereal": false,
+        "uuid": "0ab9f207-5a83-487b-8f1b-01847a818954",
+        "upgrades": 0,
+        "raw_description": "获得 !B! 点 格挡 。",
+        "has_target": false,
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 1,
+          "base_block": 8,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": -1
+        },
+        "name": "防御",
+        "can_upgrade": true,
+        "id": "Defend_R",
+        "native_values": {
+          "damage": -1,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": 5,
+          "cost_for_turn": 1,
+          "block_modified": false,
+          "scope": "base_card_stats",
+          "block": 5,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": -1
+        },
+        "rarity": "BASIC",
+        "effect": "unknown",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "获得 5 点 格挡 。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 1,
+        "target_type": "ENEMY",
+        "free_to_play_once": false,
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "0ef38f1e-412d-4237-ad05-6fda477a9d7b",
+        "upgrades": 0,
+        "raw_description": "造成 !D! 点伤害。",
+        "has_target": true,
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 1,
+          "base_block": -1,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": 9
+        },
+        "name": "打击",
+        "can_upgrade": true,
+        "id": "Strike_R",
+        "native_values": {
+          "damage": 6,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": -1,
+          "cost_for_turn": 1,
+          "block_modified": false,
+          "scope": "base_card_stats",
+          "block": -1,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": 6
+        },
+        "rarity": "BASIC",
+        "effect": "unknown",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "造成 6 点伤害。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 1,
+        "target_type": "ENEMY",
+        "free_to_play_once": false,
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "2a6be8ef-9e11-4064-ac8e-af31f9084488",
+        "upgrades": 0,
+        "raw_description": "造成 !D! 点伤害。",
+        "has_target": true,
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 1,
+          "base_block": -1,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": 9
+        },
+        "name": "打击",
+        "can_upgrade": true,
+        "id": "Strike_R",
+        "native_values": {
+          "damage": 6,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": -1,
+          "cost_for_turn": 1,
+          "block_modified": false,
+          "scope": "base_card_stats",
+          "block": -1,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": 6
+        },
+        "rarity": "BASIC",
+        "effect": "unknown",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "造成 6 点伤害。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 1,
+        "target_type": "ENEMY",
+        "free_to_play_once": false,
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "37a38649-9b83-44fb-9306-cd3fccdba2d1",
+        "upgrades": 0,
+        "raw_description": "造成 !D! 点伤害。",
+        "has_target": true,
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 1,
+          "base_block": -1,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": 9
+        },
+        "name": "打击",
+        "can_upgrade": true,
+        "id": "Strike_R",
+        "native_values": {
+          "damage": 6,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": -1,
+          "cost_for_turn": 1,
+          "block_modified": false,
+          "scope": "base_card_stats",
+          "block": -1,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": 6
+        },
+        "rarity": "BASIC",
+        "effect": "unknown",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "造成 6 点伤害。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 1,
+        "target_type": "ENEMY",
+        "free_to_play_once": false,
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "3c35b12e-df2e-49e7-b90c-db637ab3fe5e",
+        "upgrades": 0,
+        "raw_description": "造成 !D! 点伤害。",
+        "has_target": true,
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 1,
+          "base_block": -1,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": 9
+        },
+        "name": "打击",
+        "can_upgrade": true,
+        "id": "Strike_R",
+        "native_values": {
+          "damage": 6,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": -1,
+          "cost_for_turn": 1,
+          "block_modified": false,
+          "scope": "base_card_stats",
+          "block": -1,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": 6
+        },
+        "rarity": "BASIC",
+        "effect": "unknown",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "造成 6 点伤害。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 0,
+        "target_type": "ENEMY",
+        "free_to_play_once": false,
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "80329921-aed3-4900-b719-20ee84b18a94",
+        "upgrades": 0,
+        "raw_description": "造成 !D! 点伤害。 NL 在弃牌堆放入一张此牌的复制品。",
+        "has_target": true,
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 0,
+          "base_block": -1,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": 8
+        },
+        "name": "愤怒",
+        "can_upgrade": true,
+        "id": "Anger",
+        "native_values": {
+          "damage": 6,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": -1,
+          "cost_for_turn": 0,
+          "block_modified": false,
+          "scope": "base_card_stats",
+          "block": -1,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": 6
+        },
+        "rarity": "COMMON",
+        "effect": "unknown",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "造成 6 点伤害。 NL 在弃牌堆放入一张此牌的复制品。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 1,
+        "target_type": "SELF",
+        "free_to_play_once": false,
+        "type": "SKILL",
+        "ethereal": false,
+        "uuid": "8f10285b-c68b-4571-8d74-f0407aea9be0",
+        "upgrades": 0,
+        "raw_description": "获得 !B! 点 格挡 。",
+        "has_target": false,
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 1,
+          "base_block": 8,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": -1
+        },
+        "name": "防御",
+        "can_upgrade": true,
+        "id": "Defend_R",
+        "native_values": {
+          "damage": -1,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": 5,
+          "cost_for_turn": 1,
+          "block_modified": false,
+          "scope": "base_card_stats",
+          "block": 5,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": -1
+        },
+        "rarity": "BASIC",
+        "effect": "unknown",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "获得 5 点 格挡 。",
+        "dynamic_values_unknown": false
+      }
+    ],
+    "discard_pile": [],
+    "exhaust_pile": [],
+    "relics": [
+      {
+        "native_description": "在战斗结束时，回复 #b6 点生命。",
+        "name": "燃烧之血",
+        "id": "Burning Blood",
+        "counter": -1,
+        "description": "在战斗结束时，回复 #b6 点生命。",
+        "dynamic_values_unknown": false
+      }
+    ],
+    "potions": [
+      {
+        "requires_target": false,
+        "can_use": true,
+        "potency": 1,
+        "can_discard": true,
+        "native_description": "获得 #b1 层 #y仪式 。",
+        "name": "邪教徒药水",
+        "id": "CultistPotion"
+      },
+      {
+        "requires_target": false,
+        "can_use": false,
+        "potency": 0,
+        "can_discard": false,
+        "native_description": "在战斗中使用药水来获得 #g增益 或 #r阻挠 敌人。",
+        "name": "药水栏",
+        "id": "Potion Slot"
+      },
+      {
+        "requires_target": false,
+        "can_use": false,
+        "potency": 0,
+        "can_discard": false,
+        "native_description": "在战斗中使用药水来获得 #g增益 或 #r阻挠 敌人。",
+        "name": "药水栏",
+        "id": "Potion Slot"
+      }
+    ],
+    "gold": 135,
+    "encounter_mechanics": [],
+    "seed": 3745109181331792400,
+    "class": "IRONCLAD",
+    "act": 1,
+    "floor": 3,
+    "current_hp": 88,
+    "max_hp": 88,
+    "deck": [
+      {
+        "exhausts": false,
+        "cost": 1,
+        "target_type": "ENEMY",
+        "free_to_play_once": false,
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "2a6be8ef-9e11-4064-ac8e-af31f9084488",
+        "upgrades": 0,
+        "raw_description": "造成 !D! 点伤害。",
+        "has_target": true,
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 1,
+          "base_block": -1,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": 9
+        },
+        "name": "打击",
+        "can_upgrade": true,
+        "id": "Strike_R",
+        "native_values": {
+          "damage": 6,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": -1,
+          "cost_for_turn": 1,
+          "block_modified": false,
+          "scope": "base_card_stats",
+          "block": -1,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": 6
+        },
+        "rarity": "BASIC",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "造成 6 点伤害。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 1,
+        "target_type": "ENEMY",
+        "free_to_play_once": false,
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "37a38649-9b83-44fb-9306-cd3fccdba2d1",
+        "upgrades": 0,
+        "raw_description": "造成 !D! 点伤害。",
+        "has_target": true,
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 1,
+          "base_block": -1,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": 9
+        },
+        "name": "打击",
+        "can_upgrade": true,
+        "id": "Strike_R",
+        "native_values": {
+          "damage": 6,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": -1,
+          "cost_for_turn": 1,
+          "block_modified": false,
+          "scope": "base_card_stats",
+          "block": -1,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": 6
+        },
+        "rarity": "BASIC",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "造成 6 点伤害。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 1,
+        "target_type": "ENEMY",
+        "free_to_play_once": false,
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "3c35b12e-df2e-49e7-b90c-db637ab3fe5e",
+        "upgrades": 0,
+        "raw_description": "造成 !D! 点伤害。",
+        "has_target": true,
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 1,
+          "base_block": -1,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": 9
+        },
+        "name": "打击",
+        "can_upgrade": true,
+        "id": "Strike_R",
+        "native_values": {
+          "damage": 6,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": -1,
+          "cost_for_turn": 1,
+          "block_modified": false,
+          "scope": "base_card_stats",
+          "block": -1,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": 6
+        },
+        "rarity": "BASIC",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "造成 6 点伤害。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 1,
+        "target_type": "ENEMY",
+        "free_to_play_once": false,
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "4735cdc0-81e7-419f-96bc-a151a9463bf9",
+        "upgrades": 0,
+        "raw_description": "造成 !D! 点伤害。",
+        "has_target": true,
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 1,
+          "base_block": -1,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": 9
+        },
+        "name": "打击",
+        "can_upgrade": true,
+        "id": "Strike_R",
+        "native_values": {
+          "damage": 6,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": -1,
+          "cost_for_turn": 1,
+          "block_modified": false,
+          "scope": "base_card_stats",
+          "block": -1,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": 6
+        },
+        "rarity": "BASIC",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "造成 6 点伤害。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 1,
+        "target_type": "ENEMY",
+        "free_to_play_once": false,
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "0ef38f1e-412d-4237-ad05-6fda477a9d7b",
+        "upgrades": 0,
+        "raw_description": "造成 !D! 点伤害。",
+        "has_target": true,
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 1,
+          "base_block": -1,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": 9
+        },
+        "name": "打击",
+        "can_upgrade": true,
+        "id": "Strike_R",
+        "native_values": {
+          "damage": 6,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": -1,
+          "cost_for_turn": 1,
+          "block_modified": false,
+          "scope": "base_card_stats",
+          "block": -1,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": 6
+        },
+        "rarity": "BASIC",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "造成 6 点伤害。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 1,
+        "target_type": "SELF",
+        "free_to_play_once": false,
+        "type": "SKILL",
+        "ethereal": false,
+        "uuid": "f1981652-d8ca-4779-b278-067f44743d60",
+        "upgrades": 0,
+        "raw_description": "获得 !B! 点 格挡 。",
+        "has_target": false,
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 1,
+          "base_block": 8,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": -1
+        },
+        "name": "防御",
+        "can_upgrade": true,
+        "id": "Defend_R",
+        "native_values": {
+          "damage": -1,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": 5,
+          "cost_for_turn": 1,
+          "block_modified": false,
+          "scope": "base_card_stats",
+          "block": 5,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": -1
+        },
+        "rarity": "BASIC",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "获得 5 点 格挡 。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 1,
+        "target_type": "SELF",
+        "free_to_play_once": false,
+        "type": "SKILL",
+        "ethereal": false,
+        "uuid": "8f10285b-c68b-4571-8d74-f0407aea9be0",
+        "upgrades": 0,
+        "raw_description": "获得 !B! 点 格挡 。",
+        "has_target": false,
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 1,
+          "base_block": 8,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": -1
+        },
+        "name": "防御",
+        "can_upgrade": true,
+        "id": "Defend_R",
+        "native_values": {
+          "damage": -1,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": 5,
+          "cost_for_turn": 1,
+          "block_modified": false,
+          "scope": "base_card_stats",
+          "block": 5,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": -1
+        },
+        "rarity": "BASIC",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "获得 5 点 格挡 。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 1,
+        "target_type": "SELF",
+        "free_to_play_once": false,
+        "type": "SKILL",
+        "ethereal": false,
+        "uuid": "9e29a13e-ed2d-47ce-9935-b8012f303ef1",
+        "upgrades": 0,
+        "raw_description": "获得 !B! 点 格挡 。",
+        "has_target": false,
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 1,
+          "base_block": 8,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": -1
+        },
+        "name": "防御",
+        "can_upgrade": true,
+        "id": "Defend_R",
+        "native_values": {
+          "damage": -1,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": 5,
+          "cost_for_turn": 1,
+          "block_modified": false,
+          "scope": "base_card_stats",
+          "block": 5,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": -1
+        },
+        "rarity": "BASIC",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "获得 5 点 格挡 。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 1,
+        "target_type": "SELF",
+        "free_to_play_once": false,
+        "type": "SKILL",
+        "ethereal": false,
+        "uuid": "0ab9f207-5a83-487b-8f1b-01847a818954",
+        "upgrades": 0,
+        "raw_description": "获得 !B! 点 格挡 。",
+        "has_target": false,
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 1,
+          "base_block": 8,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": -1
+        },
+        "name": "防御",
+        "can_upgrade": true,
+        "id": "Defend_R",
+        "native_values": {
+          "damage": -1,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": 5,
+          "cost_for_turn": 1,
+          "block_modified": false,
+          "scope": "base_card_stats",
+          "block": 5,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": -1
+        },
+        "rarity": "BASIC",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "获得 5 点 格挡 。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 2,
+        "target_type": "ENEMY",
+        "free_to_play_once": false,
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "ead23b35-b7a6-4c90-8174-51ff7fecfbb7",
+        "upgrades": 0,
+        "raw_description": "造成 !D! 点伤害。 NL 给予 !M! 层 易伤 。",
+        "has_target": true,
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 2,
+          "base_block": -1,
+          "magic_number": 3,
+          "upgrades": 1,
+          "base_damage": 10
+        },
+        "name": "痛击",
+        "can_upgrade": true,
+        "id": "Bash",
+        "native_values": {
+          "damage": 8,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": -1,
+          "cost_for_turn": 2,
+          "block_modified": false,
+          "scope": "base_card_stats",
+          "block": -1,
+          "base_magic_number": 2,
+          "source": "game_card_fields",
+          "magic_number": 2,
+          "base_damage": 8
+        },
+        "rarity": "BASIC",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "造成 8 点伤害。 NL 给予 2 层 易伤 。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 0,
+        "target_type": "ENEMY",
+        "free_to_play_once": false,
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "80329921-aed3-4900-b719-20ee84b18a94",
+        "upgrades": 0,
+        "raw_description": "造成 !D! 点伤害。 NL 在弃牌堆放入一张此牌的复制品。",
+        "has_target": true,
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 0,
+          "base_block": -1,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": 8
+        },
+        "name": "愤怒",
+        "can_upgrade": true,
+        "id": "Anger",
+        "native_values": {
+          "damage": 6,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": -1,
+          "cost_for_turn": 0,
+          "block_modified": false,
+          "scope": "base_card_stats",
+          "block": -1,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": 6
+        },
+        "rarity": "COMMON",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "造成 6 点伤害。 NL 在弃牌堆放入一张此牌的复制品。",
+        "dynamic_values_unknown": false
+      },
+      {
+        "exhausts": false,
+        "cost": 0,
+        "target_type": "ENEMY",
+        "free_to_play_once": false,
+        "type": "ATTACK",
+        "ethereal": false,
+        "uuid": "12a0d5b8-3c30-44b3-888c-562b64b84361",
+        "upgrades": 0,
+        "raw_description": "造成 !D! 点伤害。 NL 将一张 *晕眩 放入你的抽牌堆中。",
+        "has_target": true,
+        "is_playable": true,
+        "exhaust_on_use_once": false,
+        "upgrade_preview": {
+          "cost": 0,
+          "base_block": -1,
+          "magic_number": -1,
+          "upgrades": 1,
+          "base_damage": 10
+        },
+        "name": "无谋冲锋",
+        "can_upgrade": true,
+        "id": "Reckless Charge",
+        "native_values": {
+          "damage": 7,
+          "magic_number_modified": false,
+          "damage_modified": false,
+          "base_block": -1,
+          "cost_for_turn": 0,
+          "block_modified": false,
+          "scope": "base_card_stats",
+          "block": -1,
+          "base_magic_number": -1,
+          "source": "game_card_fields",
+          "magic_number": -1,
+          "base_damage": 7
+        },
+        "rarity": "UNCOMMON",
+        "value_scope": "game_card_fields_not_target_prediction",
+        "description": "造成 7 点伤害。 NL 将一张 *晕眩 放入你的抽牌堆中。",
+        "dynamic_values_unknown": false
+      }
+    ],
+    "map": [
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 0,
+            "y": 1
+          }
+        ],
+        "x": 0,
+        "y": 0,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 4,
+            "y": 1
+          }
+        ],
+        "x": 5,
+        "y": 0,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 5,
+            "y": 1
+          },
+          {
+            "x": 6,
+            "y": 1
+          }
+        ],
+        "x": 6,
+        "y": 0,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 0,
+            "y": 2
+          },
+          {
+            "x": 1,
+            "y": 2
+          }
+        ],
+        "x": 0,
+        "y": 1,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 5,
+            "y": 2
+          }
+        ],
+        "x": 4,
+        "y": 1,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 5,
+            "y": 2
+          }
+        ],
+        "x": 5,
+        "y": 1,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 6,
+            "y": 2
+          }
+        ],
+        "x": 6,
+        "y": 1,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 0,
+            "y": 3
+          },
+          {
+            "x": 1,
+            "y": 3
+          }
+        ],
+        "x": 0,
+        "y": 2,
+        "parents": []
+      },
+      {
+        "symbol": "$",
+        "children": [
+          {
+            "x": 2,
+            "y": 3
+          }
+        ],
+        "x": 1,
+        "y": 2,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 5,
+            "y": 3
+          }
+        ],
+        "x": 5,
+        "y": 2,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 5,
+            "y": 3
+          }
+        ],
+        "x": 6,
+        "y": 2,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 0,
+            "y": 4
+          }
+        ],
+        "x": 0,
+        "y": 3,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 1,
+            "y": 4
+          }
+        ],
+        "x": 1,
+        "y": 3,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 3,
+            "y": 4
+          }
+        ],
+        "x": 2,
+        "y": 3,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 4,
+            "y": 4
+          },
+          {
+            "x": 6,
+            "y": 4
+          }
+        ],
+        "x": 5,
+        "y": 3,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 1,
+            "y": 5
+          }
+        ],
+        "x": 0,
+        "y": 4,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 1,
+            "y": 5
+          }
+        ],
+        "x": 1,
+        "y": 4,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 3,
+            "y": 5
+          }
+        ],
+        "x": 3,
+        "y": 4,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 3,
+            "y": 5
+          },
+          {
+            "x": 4,
+            "y": 5
+          }
+        ],
+        "x": 4,
+        "y": 4,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 5,
+            "y": 5
+          }
+        ],
+        "x": 6,
+        "y": 4,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 2,
+            "y": 6
+          }
+        ],
+        "x": 1,
+        "y": 5,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 2,
+            "y": 6
+          },
+          {
+            "x": 3,
+            "y": 6
+          }
+        ],
+        "x": 3,
+        "y": 5,
+        "parents": []
+      },
+      {
+        "symbol": "E",
+        "children": [
+          {
+            "x": 5,
+            "y": 6
+          }
+        ],
+        "x": 4,
+        "y": 5,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 5,
+            "y": 6
+          }
+        ],
+        "x": 5,
+        "y": 5,
+        "parents": []
+      },
+      {
+        "symbol": "E",
+        "children": [
+          {
+            "x": 1,
+            "y": 7
+          },
+          {
+            "x": 2,
+            "y": 7
+          },
+          {
+            "x": 3,
+            "y": 7
+          }
+        ],
+        "x": 2,
+        "y": 6,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 3,
+            "y": 7
+          }
+        ],
+        "x": 3,
+        "y": 6,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 4,
+            "y": 7
+          },
+          {
+            "x": 5,
+            "y": 7
+          }
+        ],
+        "x": 5,
+        "y": 6,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 0,
+            "y": 8
+          }
+        ],
+        "x": 1,
+        "y": 7,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 3,
+            "y": 8
+          }
+        ],
+        "x": 2,
+        "y": 7,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 4,
+            "y": 8
+          }
+        ],
+        "x": 3,
+        "y": 7,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 4,
+            "y": 8
+          }
+        ],
+        "x": 4,
+        "y": 7,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 6,
+            "y": 8
+          }
+        ],
+        "x": 5,
+        "y": 7,
+        "parents": []
+      },
+      {
+        "symbol": "T",
+        "children": [
+          {
+            "x": 1,
+            "y": 9
+          }
+        ],
+        "x": 0,
+        "y": 8,
+        "parents": []
+      },
+      {
+        "symbol": "T",
+        "children": [
+          {
+            "x": 2,
+            "y": 9
+          }
+        ],
+        "x": 3,
+        "y": 8,
+        "parents": []
+      },
+      {
+        "symbol": "T",
+        "children": [
+          {
+            "x": 3,
+            "y": 9
+          },
+          {
+            "x": 4,
+            "y": 9
+          }
+        ],
+        "x": 4,
+        "y": 8,
+        "parents": []
+      },
+      {
+        "symbol": "T",
+        "children": [
+          {
+            "x": 5,
+            "y": 9
+          }
+        ],
+        "x": 6,
+        "y": 8,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 1,
+            "y": 10
+          }
+        ],
+        "x": 1,
+        "y": 9,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 1,
+            "y": 10
+          }
+        ],
+        "x": 2,
+        "y": 9,
+        "parents": []
+      },
+      {
+        "symbol": "$",
+        "children": [
+          {
+            "x": 2,
+            "y": 10
+          },
+          {
+            "x": 4,
+            "y": 10
+          }
+        ],
+        "x": 3,
+        "y": 9,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 5,
+            "y": 10
+          }
+        ],
+        "x": 4,
+        "y": 9,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 5,
+            "y": 10
+          }
+        ],
+        "x": 5,
+        "y": 9,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 0,
+            "y": 11
+          },
+          {
+            "x": 1,
+            "y": 11
+          }
+        ],
+        "x": 1,
+        "y": 10,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 2,
+            "y": 11
+          }
+        ],
+        "x": 2,
+        "y": 10,
+        "parents": []
+      },
+      {
+        "symbol": "E",
+        "children": [
+          {
+            "x": 5,
+            "y": 11
+          }
+        ],
+        "x": 4,
+        "y": 10,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 5,
+            "y": 11
+          },
+          {
+            "x": 6,
+            "y": 11
+          }
+        ],
+        "x": 5,
+        "y": 10,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 0,
+            "y": 12
+          }
+        ],
+        "x": 0,
+        "y": 11,
+        "parents": []
+      },
+      {
+        "symbol": "$",
+        "children": [
+          {
+            "x": 1,
+            "y": 12
+          }
+        ],
+        "x": 1,
+        "y": 11,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 1,
+            "y": 12
+          }
+        ],
+        "x": 2,
+        "y": 11,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 5,
+            "y": 12
+          },
+          {
+            "x": 6,
+            "y": 12
+          }
+        ],
+        "x": 5,
+        "y": 11,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 6,
+            "y": 12
+          }
+        ],
+        "x": 6,
+        "y": 11,
+        "parents": []
+      },
+      {
+        "symbol": "E",
+        "children": [
+          {
+            "x": 0,
+            "y": 13
+          }
+        ],
+        "x": 0,
+        "y": 12,
+        "parents": []
+      },
+      {
+        "symbol": "E",
+        "children": [
+          {
+            "x": 0,
+            "y": 13
+          },
+          {
+            "x": 2,
+            "y": 13
+          }
+        ],
+        "x": 1,
+        "y": 12,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 4,
+            "y": 13
+          }
+        ],
+        "x": 5,
+        "y": 12,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 5,
+            "y": 13
+          }
+        ],
+        "x": 6,
+        "y": 12,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 0,
+            "y": 14
+          }
+        ],
+        "x": 0,
+        "y": 13,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 2,
+            "y": 14
+          }
+        ],
+        "x": 2,
+        "y": 13,
+        "parents": []
+      },
+      {
+        "symbol": "M",
+        "children": [
+          {
+            "x": 4,
+            "y": 14
+          }
+        ],
+        "x": 4,
+        "y": 13,
+        "parents": []
+      },
+      {
+        "symbol": "?",
+        "children": [
+          {
+            "x": 4,
+            "y": 14
+          },
+          {
+            "x": 5,
+            "y": 14
+          }
+        ],
+        "x": 5,
+        "y": 13,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 3,
+            "y": 16
+          }
+        ],
+        "x": 0,
+        "y": 14,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 3,
+            "y": 16
+          }
+        ],
+        "x": 2,
+        "y": 14,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 3,
+            "y": 16
+          }
+        ],
+        "x": 4,
+        "y": 14,
+        "parents": []
+      },
+      {
+        "symbol": "R",
+        "children": [
+          {
+            "x": 3,
+            "y": 16
+          }
+        ],
+        "x": 5,
+        "y": 14,
+        "parents": []
+      }
+    ],
+    "act_boss": "The Guardian",
+    "ascension_level": 0,
+    "screen_type": "NONE",
+    "screen_state": {},
+    "decision_context": {
+      "recent_actions": [
+        {
+          "floor": 2,
+          "screen_type": "NONE",
+          "command": "PLAY 1 0",
+          "kind": "play",
+          "card_id": "Strike_R",
+          "potion_id": null
+        },
+        {
+          "floor": 2,
+          "screen_type": "NONE",
+          "command": "PLAY 2 0",
+          "kind": "play",
+          "card_id": "Anger",
+          "potion_id": null
+        },
+        {
+          "floor": 2,
+          "screen_type": "COMBAT_REWARD",
+          "command": "CHOOSE 0",
+          "kind": "reward",
+          "card_id": null,
+          "potion_id": null
+        },
+        {
+          "floor": 2,
+          "screen_type": "COMBAT_REWARD",
+          "command": "CHOOSE 0",
+          "kind": "reward",
+          "card_id": null,
+          "potion_id": null
+        },
+        {
+          "floor": 2,
+          "screen_type": "COMBAT_REWARD",
+          "command": "CHOOSE 0",
+          "kind": "reward",
+          "card_id": null,
+          "potion_id": null
+        },
+        {
+          "floor": 2,
+          "screen_type": "CARD_REWARD",
+          "command": "CHOOSE 1",
+          "kind": "card",
+          "card_id": null,
+          "potion_id": null
+        },
+        {
+          "floor": 2,
+          "screen_type": "COMBAT_REWARD",
+          "command": "PROCEED",
+          "kind": "proceed",
+          "card_id": null,
+          "potion_id": null
+        },
+        {
+          "floor": 2,
+          "screen_type": "MAP",
+          "command": "CHOOSE 0",
+          "kind": "map",
+          "card_id": null,
+          "potion_id": null
+        }
+      ],
+      "objective": "Win the entire encounter while conserving health and consumables for the run. Compare offense, defense and setup over future turns, not only the next immediate hit.",
+      "future_draw_order": "unknown; draw-pile contents are available, but do not assume a favorable order",
+      "declined_card_rewards": [],
+      "remaining_energy": 3,
+      "playable_card_count": 5,
+      "enemy_intents": [
+        {
+          "name": "虱虫",
+          "intent": "ATTACK",
+          "move_adjusted_damage": 5,
+          "move_hits": 1
+        },
+        {
+          "name": "虱虫",
+          "intent": "ATTACK",
+          "move_adjusted_damage": 7,
+          "move_hits": 1
+        }
+      ]
+    }
+  },
+  "actions": [
+    {
+      "id": "play_1_0",
+      "command": "PLAY 1 0",
+      "description": "打击: unknown | Effect: 造成 6 点伤害。 | Game target damage calculation before block: 6; not final HP loss or a full multi-hit simulation.",
+      "hand_index": 0,
+      "card_uuid": "4735cdc0-81e7-419f-96bc-a151a9463bf9",
+      "target_index": 0,
+      "kind": "play",
+      "damage_preview": {
+        "target_index": 0,
+        "damage_before_block": 6,
+        "scope": "current_state_damage_calculation_not_action_simulation",
+        "source": "game_calculateCardDamage"
+      }
+    },
+    {
+      "id": "play_1_1",
+      "command": "PLAY 1 1",
+      "description": "打击: unknown | Effect: 造成 6 点伤害。 | Game target damage calculation before block: 6; not final HP loss or a full multi-hit simulation.",
+      "hand_index": 0,
+      "card_uuid": "4735cdc0-81e7-419f-96bc-a151a9463bf9",
+      "target_index": 1,
+      "kind": "play",
+      "damage_preview": {
+        "target_index": 1,
+        "damage_before_block": 6,
+        "scope": "current_state_damage_calculation_not_action_simulation",
+        "source": "game_calculateCardDamage"
+      }
+    },
+    {
+      "id": "play_2",
+      "command": "PLAY 2",
+      "description": "防御: unknown | Effect: 获得 5 点 格挡 。",
+      "hand_index": 1,
+      "card_uuid": "f1981652-d8ca-4779-b278-067f44743d60",
+      "target_index": null,
+      "kind": "play"
+    },
+    {
+      "id": "play_3_0",
+      "command": "PLAY 3 0",
+      "description": "无谋冲锋: unknown | Effect: 造成 7 点伤害。 NL 将一张 *晕眩 放入你的抽牌堆中。 | Game target damage calculation before block: 7; not final HP loss or a full multi-hit simulation.",
+      "hand_index": 2,
+      "card_uuid": "12a0d5b8-3c30-44b3-888c-562b64b84361",
+      "target_index": 0,
+      "kind": "play",
+      "damage_preview": {
+        "target_index": 0,
+        "damage_before_block": 7,
+        "scope": "current_state_damage_calculation_not_action_simulation",
+        "source": "game_calculateCardDamage"
+      }
+    },
+    {
+      "id": "play_3_1",
+      "command": "PLAY 3 1",
+      "description": "无谋冲锋: unknown | Effect: 造成 7 点伤害。 NL 将一张 *晕眩 放入你的抽牌堆中。 | Game target damage calculation before block: 7; not final HP loss or a full multi-hit simulation.",
+      "hand_index": 2,
+      "card_uuid": "12a0d5b8-3c30-44b3-888c-562b64b84361",
+      "target_index": 1,
+      "kind": "play",
+      "damage_preview": {
+        "target_index": 1,
+        "damage_before_block": 7,
+        "scope": "current_state_damage_calculation_not_action_simulation",
+        "source": "game_calculateCardDamage"
+      }
+    },
+    {
+      "id": "play_4_0",
+      "command": "PLAY 4 0",
+      "description": "痛击: unknown | Effect: 造成 8 点伤害。 NL 给予 2 层 易伤 。 | Game target damage calculation before block: 8; not final HP loss or a full multi-hit simulation.",
+      "hand_index": 3,
+      "card_uuid": "ead23b35-b7a6-4c90-8174-51ff7fecfbb7",
+      "target_index": 0,
+      "kind": "play",
+      "damage_preview": {
+        "target_index": 0,
+        "damage_before_block": 8,
+        "scope": "current_state_damage_calculation_not_action_simulation",
+        "source": "game_calculateCardDamage"
+      }
+    },
+    {
+      "id": "play_4_1",
+      "command": "PLAY 4 1",
+      "description": "痛击: unknown | Effect: 造成 8 点伤害。 NL 给予 2 层 易伤 。 | Game target damage calculation before block: 8; not final HP loss or a full multi-hit simulation.",
+      "hand_index": 3,
+      "card_uuid": "ead23b35-b7a6-4c90-8174-51ff7fecfbb7",
+      "target_index": 1,
+      "kind": "play",
+      "damage_preview": {
+        "target_index": 1,
+        "damage_before_block": 8,
+        "scope": "current_state_damage_calculation_not_action_simulation",
+        "source": "game_calculateCardDamage"
+      }
+    },
+    {
+      "id": "play_5",
+      "command": "PLAY 5",
+      "description": "防御: unknown | Effect: 获得 5 点 格挡 。",
+      "hand_index": 4,
+      "card_uuid": "9e29a13e-ed2d-47ce-9935-b8012f303ef1",
+      "target_index": null,
+      "kind": "play"
+    },
+    {
+      "id": "end",
+      "command": "END",
+      "description": "End turn; remaining energy=3, playable cards=5. Consider unused attacks, setup and incoming damage; waiting may be appropriate for sleeping enemies.",
+      "hand_index": null,
+      "card_uuid": null,
+      "target_index": null,
+      "kind": "end"
+    },
+    {
+      "id": "potion_use_0",
+      "command": "POTION USE 0",
+      "description": "Use 邪教徒药水",
+      "hand_index": null,
+      "card_uuid": null,
+      "target_index": null,
+      "subaction": "use",
+      "kind": "potion",
+      "potion_index": 0,
+      "potion_id": "CultistPotion",
+      "potion": {
+        "requires_target": false,
+        "can_use": true,
+        "potency": 1,
+        "can_discard": true,
+        "native_description": "获得 #b1 层 #y仪式 。",
+        "name": "邪教徒药水",
+        "id": "CultistPotion"
+      }
+    },
+    {
+      "id": "potion_discard_0",
+      "command": "POTION DISCARD 0",
+      "description": "Discard 邪教徒药水",
+      "hand_index": null,
+      "card_uuid": null,
+      "target_index": null,
+      "subaction": "discard",
+      "kind": "potion",
+      "potion_index": 0,
+      "potion_id": "CultistPotion",
+      "potion": {
+        "requires_target": false,
+        "can_use": true,
+        "potency": 1,
+        "can_discard": true,
+        "native_description": "获得 #b1 层 #y仪式 。",
+        "name": "邪教徒药水",
+        "id": "CultistPotion"
+      }
+    }
+  ]
+}

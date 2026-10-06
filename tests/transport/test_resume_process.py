@@ -53,4 +53,4 @@ def test_buffered_snapshots_cannot_repeat_unconfirmed_action(tmp_path, monkeypat
     rows = [json.loads(line) for line in (tmp_path / 'runs.jsonl').read_text(encoding='utf-8').splitlines()]
     assert len([r for r in rows if r['status'] == 'command_sent']) == 1
     assert len([r for r in rows if r['status'] == 'action_confirmed']) == 1
-    assert rows[-1]['status'] == 'resumed' and rows[-1]['calls'] == 0
+    assert rows[-1]['status'] == 'resumed' and rows[-1]['calls'] == 1

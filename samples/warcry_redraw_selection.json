@@ -1,0 +1,486 @@
+{
+  "before": {
+    "game_state": {
+      "seed": 3745109181331792400,
+      "act": 1,
+      "floor": 16,
+      "screen_type": "HAND_SELECT",
+      "room_phase": "COMBAT",
+      "combat_state": {
+        "turn": 5,
+        "player": {
+          "powers": [
+            {
+              "id": "Dark Embrace",
+              "amount": 1
+            },
+            {
+              "id": "Vulnerable",
+              "amount": 1
+            },
+            {
+              "id": "Weakened",
+              "amount": 1
+            }
+          ]
+        },
+        "hand": [
+          {
+            "id": "Bash",
+            "name": "痛击+",
+            "uuid": "ead23b35-b7a6-4c90-8174-51ff7fecfbb7",
+            "type": "ATTACK",
+            "upgrades": 1
+          },
+          {
+            "id": "Dazed",
+            "name": "晕眩",
+            "uuid": "8f8186bf-a20b-45a4-a3e6-d8029622d6fb",
+            "type": "STATUS",
+            "upgrades": 0
+          },
+          {
+            "id": "Anger",
+            "name": "愤怒",
+            "uuid": "47b190e8-833a-4ca9-aa94-80751073a5c6",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Burning Pact",
+            "name": "燃烧契约",
+            "uuid": "210a7366-e014-42f7-8e89-022df149a415",
+            "type": "SKILL",
+            "upgrades": 0
+          }
+        ],
+        "draw_pile": [
+          {
+            "id": "Strike_R",
+            "name": "打击",
+            "uuid": "37a38649-9b83-44fb-9306-cd3fccdba2d1",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Juggernaut",
+            "name": "势不可当",
+            "uuid": "7063d3dc-11fb-4846-8cce-29f5cc44d3bf",
+            "type": "POWER",
+            "upgrades": 0
+          },
+          {
+            "id": "Burning Pact",
+            "name": "燃烧契约",
+            "uuid": "90dd5d20-4a16-4f3d-95de-58a28d513a89",
+            "type": "SKILL",
+            "upgrades": 0
+          },
+          {
+            "id": "Anger",
+            "name": "愤怒",
+            "uuid": "80329921-aed3-4900-b719-20ee84b18a94",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Defend_R",
+            "name": "防御",
+            "uuid": "f1981652-d8ca-4779-b278-067f44743d60",
+            "type": "SKILL",
+            "upgrades": 0
+          },
+          {
+            "id": "Strike_R",
+            "name": "打击",
+            "uuid": "3c35b12e-df2e-49e7-b90c-db637ab3fe5e",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Strike_R",
+            "name": "打击",
+            "uuid": "4735cdc0-81e7-419f-96bc-a151a9463bf9",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Carnage",
+            "name": "残杀+",
+            "uuid": "45d09de7-91e7-41b0-a6cf-a5db8311b767",
+            "type": "ATTACK",
+            "upgrades": 1
+          },
+          {
+            "id": "Dropkick",
+            "name": "飞身踢",
+            "uuid": "6c3e37b3-9799-4591-b933-eff42b6dcf96",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Shrug It Off",
+            "name": "耸肩无视",
+            "uuid": "f8e11a55-71d2-4b72-a5ec-9bb7c6821b40",
+            "type": "SKILL",
+            "upgrades": 0
+          },
+          {
+            "id": "Reckless Charge",
+            "name": "无谋冲锋",
+            "uuid": "12a0d5b8-3c30-44b3-888c-562b64b84361",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Defend_R",
+            "name": "防御",
+            "uuid": "8f10285b-c68b-4571-8d74-f0407aea9be0",
+            "type": "SKILL",
+            "upgrades": 0
+          },
+          {
+            "id": "Defend_R",
+            "name": "防御",
+            "uuid": "0ab9f207-5a83-487b-8f1b-01847a818954",
+            "type": "SKILL",
+            "upgrades": 0
+          },
+          {
+            "id": "Cleave",
+            "name": "顺劈斩",
+            "uuid": "0fba2b18-644d-46d5-b5d3-2e636046be87",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Sever Soul",
+            "name": "断魂斩",
+            "uuid": "f20e11f5-60d5-4ce0-b8c4-e023ebdcc389",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Strike_R",
+            "name": "打击",
+            "uuid": "2a6be8ef-9e11-4064-ac8e-af31f9084488",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Heavy Blade",
+            "name": "重刃",
+            "uuid": "604f2e30-be9f-4ad3-b890-ca6b9835a5df",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Strike_R",
+            "name": "打击",
+            "uuid": "0ef38f1e-412d-4237-ad05-6fda477a9d7b",
+            "type": "ATTACK",
+            "upgrades": 0
+          }
+        ],
+        "discard_pile": [
+          {
+            "id": "Defend_R",
+            "name": "防御",
+            "uuid": "9e29a13e-ed2d-47ce-9935-b8012f303ef1",
+            "type": "SKILL",
+            "upgrades": 0
+          }
+        ],
+        "exhaust_pile": []
+      },
+      "screen_state": {
+        "max_cards": 1,
+        "can_pick_zero": false,
+        "selected": [],
+        "hand": [
+          {
+            "id": "Bash",
+            "name": "痛击+",
+            "uuid": "ead23b35-b7a6-4c90-8174-51ff7fecfbb7",
+            "type": "ATTACK",
+            "upgrades": 1
+          },
+          {
+            "id": "Dazed",
+            "name": "晕眩",
+            "uuid": "8f8186bf-a20b-45a4-a3e6-d8029622d6fb",
+            "type": "STATUS",
+            "upgrades": 0
+          },
+          {
+            "id": "Anger",
+            "name": "愤怒",
+            "uuid": "47b190e8-833a-4ca9-aa94-80751073a5c6",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Burning Pact",
+            "name": "燃烧契约",
+            "uuid": "210a7366-e014-42f7-8e89-022df149a415",
+            "type": "SKILL",
+            "upgrades": 0
+          }
+        ]
+      }
+    }
+  },
+  "after": {
+    "game_state": {
+      "seed": 3745109181331792400,
+      "act": 1,
+      "floor": 16,
+      "screen_type": "NONE",
+      "room_phase": "COMBAT",
+      "combat_state": {
+        "turn": 5,
+        "player": {
+          "powers": [
+            {
+              "id": "Dark Embrace",
+              "amount": 1
+            },
+            {
+              "id": "Vulnerable",
+              "amount": 1
+            },
+            {
+              "id": "Weakened",
+              "amount": 1
+            }
+          ]
+        },
+        "hand": [
+          {
+            "id": "Dazed",
+            "name": "晕眩",
+            "uuid": "8f8186bf-a20b-45a4-a3e6-d8029622d6fb",
+            "type": "STATUS",
+            "upgrades": 0
+          },
+          {
+            "id": "Anger",
+            "name": "愤怒",
+            "uuid": "47b190e8-833a-4ca9-aa94-80751073a5c6",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Burning Pact",
+            "name": "燃烧契约",
+            "uuid": "210a7366-e014-42f7-8e89-022df149a415",
+            "type": "SKILL",
+            "upgrades": 0
+          },
+          {
+            "id": "Bash",
+            "name": "痛击+",
+            "uuid": "ead23b35-b7a6-4c90-8174-51ff7fecfbb7",
+            "type": "ATTACK",
+            "upgrades": 1
+          }
+        ],
+        "draw_pile": [
+          {
+            "id": "Strike_R",
+            "name": "打击",
+            "uuid": "37a38649-9b83-44fb-9306-cd3fccdba2d1",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Juggernaut",
+            "name": "势不可当",
+            "uuid": "7063d3dc-11fb-4846-8cce-29f5cc44d3bf",
+            "type": "POWER",
+            "upgrades": 0
+          },
+          {
+            "id": "Burning Pact",
+            "name": "燃烧契约",
+            "uuid": "90dd5d20-4a16-4f3d-95de-58a28d513a89",
+            "type": "SKILL",
+            "upgrades": 0
+          },
+          {
+            "id": "Anger",
+            "name": "愤怒",
+            "uuid": "80329921-aed3-4900-b719-20ee84b18a94",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Defend_R",
+            "name": "防御",
+            "uuid": "f1981652-d8ca-4779-b278-067f44743d60",
+            "type": "SKILL",
+            "upgrades": 0
+          },
+          {
+            "id": "Strike_R",
+            "name": "打击",
+            "uuid": "3c35b12e-df2e-49e7-b90c-db637ab3fe5e",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Strike_R",
+            "name": "打击",
+            "uuid": "4735cdc0-81e7-419f-96bc-a151a9463bf9",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Carnage",
+            "name": "残杀+",
+            "uuid": "45d09de7-91e7-41b0-a6cf-a5db8311b767",
+            "type": "ATTACK",
+            "upgrades": 1
+          },
+          {
+            "id": "Dropkick",
+            "name": "飞身踢",
+            "uuid": "6c3e37b3-9799-4591-b933-eff42b6dcf96",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Shrug It Off",
+            "name": "耸肩无视",
+            "uuid": "f8e11a55-71d2-4b72-a5ec-9bb7c6821b40",
+            "type": "SKILL",
+            "upgrades": 0
+          },
+          {
+            "id": "Reckless Charge",
+            "name": "无谋冲锋",
+            "uuid": "12a0d5b8-3c30-44b3-888c-562b64b84361",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Defend_R",
+            "name": "防御",
+            "uuid": "8f10285b-c68b-4571-8d74-f0407aea9be0",
+            "type": "SKILL",
+            "upgrades": 0
+          },
+          {
+            "id": "Defend_R",
+            "name": "防御",
+            "uuid": "0ab9f207-5a83-487b-8f1b-01847a818954",
+            "type": "SKILL",
+            "upgrades": 0
+          },
+          {
+            "id": "Cleave",
+            "name": "顺劈斩",
+            "uuid": "0fba2b18-644d-46d5-b5d3-2e636046be87",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Sever Soul",
+            "name": "断魂斩",
+            "uuid": "f20e11f5-60d5-4ce0-b8c4-e023ebdcc389",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Strike_R",
+            "name": "打击",
+            "uuid": "2a6be8ef-9e11-4064-ac8e-af31f9084488",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Heavy Blade",
+            "name": "重刃",
+            "uuid": "604f2e30-be9f-4ad3-b890-ca6b9835a5df",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Strike_R",
+            "name": "打击",
+            "uuid": "0ef38f1e-412d-4237-ad05-6fda477a9d7b",
+            "type": "ATTACK",
+            "upgrades": 0
+          }
+        ],
+        "discard_pile": [
+          {
+            "id": "Defend_R",
+            "name": "防御",
+            "uuid": "9e29a13e-ed2d-47ce-9935-b8012f303ef1",
+            "type": "SKILL",
+            "upgrades": 0
+          }
+        ],
+        "exhaust_pile": [
+          {
+            "id": "Warcry",
+            "name": "战吼",
+            "uuid": "4ab9e7b8-c3f3-4af6-a0dc-220c25dea6b1",
+            "type": "SKILL",
+            "upgrades": 0
+          }
+        ]
+      },
+      "screen_state": {}
+    }
+  },
+  "action": {
+    "id": "hand_select_choose_0",
+    "kind": "screen_hand_select",
+    "command": "CHOOSE 0",
+    "card_uuid": "ead23b35-b7a6-4c90-8174-51ff7fecfbb7",
+    "card": {
+      "id": "Bash",
+      "name": "痛击+",
+      "uuid": "ead23b35-b7a6-4c90-8174-51ff7fecfbb7",
+      "type": "ATTACK",
+      "upgrades": 1
+    },
+    "selection_state": {
+      "max_cards": 1,
+      "can_pick_zero": false,
+      "selected": [],
+      "hand": [
+        {
+          "id": "Bash",
+          "name": "痛击+",
+          "uuid": "ead23b35-b7a6-4c90-8174-51ff7fecfbb7",
+          "type": "ATTACK",
+          "upgrades": 1
+        },
+        {
+          "id": "Dazed",
+          "name": "晕眩",
+          "uuid": "8f8186bf-a20b-45a4-a3e6-d8029622d6fb",
+          "type": "STATUS",
+          "upgrades": 0
+        },
+        {
+          "id": "Anger",
+          "name": "愤怒",
+          "uuid": "47b190e8-833a-4ca9-aa94-80751073a5c6",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Burning Pact",
+          "name": "燃烧契约",
+          "uuid": "210a7366-e014-42f7-8e89-022df149a415",
+          "type": "SKILL",
+          "upgrades": 0
+        }
+      ]
+    }
+  }
+}

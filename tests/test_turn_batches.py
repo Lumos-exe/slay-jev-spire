@@ -36,7 +36,7 @@ def test_one_selector_call_executes_three_attacks_and_end_with_rebound_indices(t
         assert all(a['kind'] == 'turn_plan' for a in actions)
         return choose_mock(summary, sorted(actions, key=lambda a: a['outcome']['enemy_hp']))
     raw = battle()
-    s = RunSession(tmp_path, mode='mock', selector=select)
+    s = RunSession(tmp_path, mode='mock', selector=select,planning_mode='enumerate')
     for _ in range(3):
         assert s.receive(raw) == ['STATE']
         assert s.receive(raw) == ['PLAY 1 0']
@@ -74,7 +74,7 @@ def test_one_choice_executes_potion_then_body_slam_and_end(tmp_path):
         assert chosen['outcome']['enemy_hp']==15
         assert chosen['outcome']['incoming_hp_loss']==17
         return choose_mock(summary,[chosen])
-    session=RunSession(tmp_path,mode='mock',selector=select,catalog={})
+    session=RunSession(tmp_path,mode='mock',selector=select,catalog={},planning_mode='enumerate')
     assert session.receive(raw)==['STATE']
     assert session.receive(raw)==['POTION USE 0'];session.command_sent('POTION USE 0')
     game['potions'][0]={'id':'Potion Slot'}  # Empty slots need no potency field.
@@ -94,7 +94,7 @@ def test_unexpected_state_invalidates_queue_and_replans(tmp_path):
     def select(summary, actions):
         calls.append(actions)
         return choose_mock(summary, sorted(actions, key=lambda a: a['outcome']['enemy_hp']))
-    raw = battle(); s = RunSession(tmp_path, mode='mock', selector=select)
+    raw = battle(); s = RunSession(tmp_path, mode='mock', selector=select,planning_mode='enumerate')
     s.receive(raw); s.receive(raw); s.command_sent('PLAY 1 0')
     c = raw['game_state']['combat_state']
     c['hand'].pop(0); c['player']['energy'] -= 1; c['monsters'][0]['current_hp'] -= 6
@@ -134,6 +134,40 @@ def test_cost_or_intent_change_invalidates_next_planned_step():
     changed = deepcopy(raw)
     changed['game_state']['combat_state']['monsters'][0]['move_adjusted_damage'] = 18
     assert bind_plan_step(step, *prepare_journey(changed)) is None
+
+
+@pytest.mark.parametrize('field,value', [
+    ('free_to_play_once', True), ('exhaust_on_use_once', True),
+    ('retain', True), ('self_retain', True), ('purge_on_use', True),
+    ('ethereal', True), ('exhausts', True), ('target_type', 'ALL_ENEMY'),
+    ('has_target', False), ('can_upgrade', False),
+    ('upgrade_preview', {'cost':0, 'base_damage':9, 'base_block':0, 'magic_number':0, 'upgrades':1}),
+])
+def test_effect_relevant_card_change_invalidates_segment(field, value):
+    from slay_jev_spire.turn_planner import turn_plans, bind_plan_step
+    raw = battle()
+    step = turn_plans(*prepare_journey(raw))[0]['steps'][0]
+    changed = deepcopy(raw)
+    changed['game_state']['combat_state']['hand'][0][field] = value
+    assert bind_plan_step(step, *prepare_journey(changed)) is None
+
+
+def test_same_named_enemy_replacement_invalidates_segment():
+    from slay_jev_spire.turn_planner import turn_plans, bind_plan_step
+    raw = battle()
+    raw['game_state']['combat_state']['monsters'][0]['entity_id'] = 'monster-a'
+    step = turn_plans(*prepare_journey(raw))[0]['steps'][0]
+    changed = deepcopy(raw)
+    changed['game_state']['combat_state']['monsters'][0]['entity_id'] = 'monster-b'
+    assert bind_plan_step(step, *prepare_journey(changed)) is None
+
+
+def test_hand_order_change_invalidates_order_dependent_segment():
+    from slay_jev_spire.turn_planner import turn_plans, bind_plan_step
+    raw = battle()
+    step = turn_plans(*prepare_journey(raw))[0]['steps'][0]
+    raw['game_state']['combat_state']['hand'].reverse()
+    assert bind_plan_step(step, *prepare_journey(raw)) is None
 
 
 def test_looter_one_hp_is_presented_to_judge_as_lethal_plan(tmp_path):
@@ -215,72 +249,31 @@ def armaments_choice_nodes():
     return raw, nodes
 
 
-def test_armaments_plays_the_upgraded_copy_when_future_resources_are_identical():
-    from slay_jev_spire.turn_planner import generate_plans, _prune_resource_dominated, _resource_signature
-    from slay_jev_spire.state import prepare_native_combat
-    raw, (bad, good) = armaments_choice_nodes()
-    assert bad[2]['enemy_hp_after_turn_by_target'] == [23]
-    assert good[2]['enemy_hp_after_turn_by_target'] == [20]
-    assert _resource_signature(bad) == _resource_signature(good) is not None
-    kept, count = _prune_resource_dominated([bad, good])
-    assert kept == [good] and count == 1
-    plans, stats = generate_plans(*prepare_native_combat(raw))
-    assert stats['domination_pruned'] > 0
-    assert any(p['outcome']['enemy_hp']==20 and p['outcome']['incoming_hp_loss']==0 for p in plans)
-    for plan in plans:
-        sequence = plan['sequence']
-        if len(sequence)==4 and sequence[0].get('card_id')=='Defend_R' and sequence[1].get('card_id')=='Armaments':
-            if sequence[1].get('selection_uuid') in {'Strike_R','other-strike'} and sequence[2].get('card_id')=='Strike_R':
-                assert sequence[1]['selection_uuid'] == sequence[2]['card_uuid']
+def test_armaments_alternatives_remain_for_model_without_dominance_ranking():
+    from slay_jev_spire.turn_planner import generate_plans
+    raw, _ = armaments_choice_nodes()
+    plans, stats = generate_plans(*prepare_journey(raw))
+    assert stats['domination_pruned'] == 0
+    matching = [p for p in plans if len(p['sequence']) == 4
+                and {s.get('card_id') for s in p['sequence'][:3]} == {'Defend_R', 'Armaments', 'Strike_R'}
+                and any(s.get('selection_uuid') in {'Strike_R', 'other-strike'} for s in p['sequence'])]
+    assert any(p['outcome']['enemy_hp'] == 20 for p in matching)
+    assert any(p['outcome']['enemy_hp'] == 23 for p in matching)
 
 
 @pytest.mark.parametrize('difference', ['potion', 'energy', 'max_hp', 'power', 'counter',
-                                         'relic_counter', 'one_use_flag', 'retained_block', 'draw_pile'])
-def test_damage_does_not_dominate_different_future_resources(difference):
-    from slay_jev_spire.turn_planner import _prune_resource_dominated
-    _, (bad, good) = armaments_choice_nodes()
-    state, _, out = good
-    if difference == 'potion':
-        state['potions_used'] = out['potions_used'] = [{'potion_index':0,'potion_id':'Strength Potion'}]
-    elif difference == 'energy':
-        bad[0]['relics']['Ice Cream'] = state['relics']['Ice Cream'] = -1
-        state['energy'] += 1
+                                         'relic_counter', 'one_use_flag', 'draw_pile'])
+def test_distinct_resources_are_not_merged_by_search(difference):
+    from slay_jev_spire.turn_planner import search_key
+    _, nodes = armaments_choice_nodes()
+    before = nodes[1][0]
+    state = deepcopy(before)
+    if difference == 'potion': state['potions_used'] = [{'potion_index':0,'potion_id':'Strength Potion'}]
+    elif difference == 'energy': state['energy'] += 1
     elif difference == 'max_hp': state['max_hp'] += 1
     elif difference == 'power': state['powers']['Strength'] = 1
     elif difference == 'counter': state['attacks_this_combat'] += 1
     elif difference == 'relic_counter': state['relics']['Happy Flower'] = 1
     elif difference == 'one_use_flag': state['hand'][0]['free_to_play_once'] = True
-    elif difference == 'retained_block': out['retained_block'] += 1
     elif difference == 'draw_pile': state['draw_pile'].append(state['hand'].pop())
-    assert _prune_resource_dominated([bad, good])[1] == 0
-
-
-@pytest.mark.parametrize('boundary', ['partial', 'known_top', 'retain', 'pyramid', 'sleep',
-                                       'status', 'ethereal', 'generation', 'draw', 'trigger'])
-def test_resource_dominance_leaves_information_and_end_turn_boundaries_alone(boundary):
-    from slay_jev_spire.turn_planner import _prune_resource_dominated
-    _, nodes = armaments_choice_nodes()
-    for state, _, out in nodes:
-        if boundary == 'partial': out['forecast_scope'] = 'partial'
-        elif boundary == 'known_top': state['known_top'] = ['known-card']
-        elif boundary == 'retain': state['hand'][0]['retain'] = True
-        elif boundary == 'pyramid': state['relics']['Runic Pyramid'] = -1
-        elif boundary == 'sleep': state['enemies'][0]['intent'] = 'SLEEP'
-        elif boundary == 'status': state['hand'][0]['type'] = 'STATUS'
-        elif boundary == 'ethereal': state['hand'][0]['ethereal'] = True
-        elif boundary == 'generation': state['generated'] = 1
-        elif boundary == 'draw': state['draws'] = 1
-        elif boundary == 'trigger': state['powers']['Plated Armor'] = 4
-    assert _prune_resource_dominated(nodes)[1] == 0
-
-
-def test_resource_dominance_compares_each_target_and_is_bounded():
-    from slay_jev_spire.turn_planner import _prune_resource_dominated
-    _, nodes = armaments_choice_nodes()
-    for state, _, out in nodes:
-        state['enemies'].append(deepcopy(state['enemies'][0]))
-    nodes[0][2]['enemy_hp_by_target'] = nodes[0][2]['enemy_hp_after_turn_by_target'] = [23,10]
-    nodes[1][2]['enemy_hp_by_target'] = nodes[1][2]['enemy_hp_after_turn_by_target'] = [20,11]
-    assert _prune_resource_dominated(nodes)[1] == 0  # Less total HP is not dominance.
-    _, nodes = armaments_choice_nodes()
-    assert _prune_resource_dominated([nodes[0]]*32 + [nodes[1]])[1] == 0
+    assert search_key(before) != search_key(state)

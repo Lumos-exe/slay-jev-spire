@@ -1,0 +1,442 @@
+{
+  "before": {
+    "game_state": {
+      "seed": 3745109181331792400,
+      "act": 1,
+      "floor": 7,
+      "screen_type": "GRID",
+      "deck": [
+        {
+          "id": "Strike_R",
+          "name": "打击",
+          "uuid": "2a6be8ef-9e11-4064-ac8e-af31f9084488",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Strike_R",
+          "name": "打击",
+          "uuid": "37a38649-9b83-44fb-9306-cd3fccdba2d1",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Strike_R",
+          "name": "打击",
+          "uuid": "3c35b12e-df2e-49e7-b90c-db637ab3fe5e",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Strike_R",
+          "name": "打击",
+          "uuid": "4735cdc0-81e7-419f-96bc-a151a9463bf9",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Strike_R",
+          "name": "打击",
+          "uuid": "0ef38f1e-412d-4237-ad05-6fda477a9d7b",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Defend_R",
+          "name": "防御",
+          "uuid": "f1981652-d8ca-4779-b278-067f44743d60",
+          "type": "SKILL",
+          "upgrades": 0
+        },
+        {
+          "id": "Defend_R",
+          "name": "防御",
+          "uuid": "8f10285b-c68b-4571-8d74-f0407aea9be0",
+          "type": "SKILL",
+          "upgrades": 0
+        },
+        {
+          "id": "Defend_R",
+          "name": "防御",
+          "uuid": "9e29a13e-ed2d-47ce-9935-b8012f303ef1",
+          "type": "SKILL",
+          "upgrades": 0
+        },
+        {
+          "id": "Defend_R",
+          "name": "防御",
+          "uuid": "0ab9f207-5a83-487b-8f1b-01847a818954",
+          "type": "SKILL",
+          "upgrades": 0
+        },
+        {
+          "id": "Bash",
+          "name": "痛击+",
+          "uuid": "ead23b35-b7a6-4c90-8174-51ff7fecfbb7",
+          "type": "ATTACK",
+          "upgrades": 1
+        },
+        {
+          "id": "Anger",
+          "name": "愤怒",
+          "uuid": "80329921-aed3-4900-b719-20ee84b18a94",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Reckless Charge",
+          "name": "无谋冲锋",
+          "uuid": "12a0d5b8-3c30-44b3-888c-562b64b84361",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Dropkick",
+          "name": "飞身踢",
+          "uuid": "6c3e37b3-9799-4591-b933-eff42b6dcf96",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Burning Pact",
+          "name": "燃烧契约",
+          "uuid": "210a7366-e014-42f7-8e89-022df149a415",
+          "type": "SKILL",
+          "upgrades": 0
+        },
+        {
+          "id": "Cleave",
+          "name": "顺劈斩",
+          "uuid": "0fba2b18-644d-46d5-b5d3-2e636046be87",
+          "type": "ATTACK",
+          "upgrades": 0
+        }
+      ],
+      "relics": [
+        {
+          "native_description": "在战斗结束时，回复 #b6 点生命。",
+          "name": "燃烧之血",
+          "id": "Burning Blood",
+          "counter": -1
+        },
+        {
+          "native_description": "拾起时，选择一张 #y攻击牌 。在每场战斗开始时，这张牌会出现在手牌中。",
+          "name": "瓶装火焰",
+          "id": "Bottled Flame",
+          "counter": -1
+        }
+      ],
+      "screen_state": {
+        "selected_cards": [],
+        "for_transform": false,
+        "confirm_up": false,
+        "any_number": false,
+        "for_upgrade": false,
+        "num_cards": 1,
+        "for_purge": false,
+        "cards": [
+          {
+            "id": "Cleave",
+            "name": "顺劈斩",
+            "uuid": "0fba2b18-644d-46d5-b5d3-2e636046be87",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Dropkick",
+            "name": "飞身踢",
+            "uuid": "6c3e37b3-9799-4591-b933-eff42b6dcf96",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Reckless Charge",
+            "name": "无谋冲锋",
+            "uuid": "12a0d5b8-3c30-44b3-888c-562b64b84361",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Anger",
+            "name": "愤怒",
+            "uuid": "80329921-aed3-4900-b719-20ee84b18a94",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Bash",
+            "name": "痛击+",
+            "uuid": "ead23b35-b7a6-4c90-8174-51ff7fecfbb7",
+            "type": "ATTACK",
+            "upgrades": 1
+          },
+          {
+            "id": "Strike_R",
+            "name": "打击",
+            "uuid": "0ef38f1e-412d-4237-ad05-6fda477a9d7b",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Strike_R",
+            "name": "打击",
+            "uuid": "4735cdc0-81e7-419f-96bc-a151a9463bf9",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Strike_R",
+            "name": "打击",
+            "uuid": "3c35b12e-df2e-49e7-b90c-db637ab3fe5e",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Strike_R",
+            "name": "打击",
+            "uuid": "37a38649-9b83-44fb-9306-cd3fccdba2d1",
+            "type": "ATTACK",
+            "upgrades": 0
+          },
+          {
+            "id": "Strike_R",
+            "name": "打击",
+            "uuid": "2a6be8ef-9e11-4064-ac8e-af31f9084488",
+            "type": "ATTACK",
+            "upgrades": 0
+          }
+        ]
+      }
+    }
+  },
+  "after": {
+    "game_state": {
+      "seed": 3745109181331792400,
+      "act": 1,
+      "floor": 7,
+      "screen_type": "COMBAT_REWARD",
+      "deck": [
+        {
+          "id": "Strike_R",
+          "name": "打击",
+          "uuid": "2a6be8ef-9e11-4064-ac8e-af31f9084488",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Strike_R",
+          "name": "打击",
+          "uuid": "37a38649-9b83-44fb-9306-cd3fccdba2d1",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Strike_R",
+          "name": "打击",
+          "uuid": "3c35b12e-df2e-49e7-b90c-db637ab3fe5e",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Strike_R",
+          "name": "打击",
+          "uuid": "4735cdc0-81e7-419f-96bc-a151a9463bf9",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Strike_R",
+          "name": "打击",
+          "uuid": "0ef38f1e-412d-4237-ad05-6fda477a9d7b",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Defend_R",
+          "name": "防御",
+          "uuid": "f1981652-d8ca-4779-b278-067f44743d60",
+          "type": "SKILL",
+          "upgrades": 0
+        },
+        {
+          "id": "Defend_R",
+          "name": "防御",
+          "uuid": "8f10285b-c68b-4571-8d74-f0407aea9be0",
+          "type": "SKILL",
+          "upgrades": 0
+        },
+        {
+          "id": "Defend_R",
+          "name": "防御",
+          "uuid": "9e29a13e-ed2d-47ce-9935-b8012f303ef1",
+          "type": "SKILL",
+          "upgrades": 0
+        },
+        {
+          "id": "Defend_R",
+          "name": "防御",
+          "uuid": "0ab9f207-5a83-487b-8f1b-01847a818954",
+          "type": "SKILL",
+          "upgrades": 0
+        },
+        {
+          "id": "Bash",
+          "name": "痛击+",
+          "uuid": "ead23b35-b7a6-4c90-8174-51ff7fecfbb7",
+          "type": "ATTACK",
+          "upgrades": 1
+        },
+        {
+          "id": "Anger",
+          "name": "愤怒",
+          "uuid": "80329921-aed3-4900-b719-20ee84b18a94",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Reckless Charge",
+          "name": "无谋冲锋",
+          "uuid": "12a0d5b8-3c30-44b3-888c-562b64b84361",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Dropkick",
+          "name": "飞身踢",
+          "uuid": "6c3e37b3-9799-4591-b933-eff42b6dcf96",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Burning Pact",
+          "name": "燃烧契约",
+          "uuid": "210a7366-e014-42f7-8e89-022df149a415",
+          "type": "SKILL",
+          "upgrades": 0
+        },
+        {
+          "id": "Cleave",
+          "name": "顺劈斩",
+          "uuid": "0fba2b18-644d-46d5-b5d3-2e636046be87",
+          "type": "ATTACK",
+          "upgrades": 0
+        }
+      ],
+      "relics": [
+        {
+          "native_description": "在战斗结束时，回复 #b6 点生命。",
+          "name": "燃烧之血",
+          "id": "Burning Blood",
+          "counter": -1
+        },
+        {
+          "native_description": "在每场战斗开始时，将 #y顺劈斩 放入你的手牌。",
+          "name": "瓶装火焰",
+          "id": "Bottled Flame",
+          "counter": -1
+        }
+      ],
+      "screen_state": {
+        "rewards": [
+          {
+            "reward_type": "CARD"
+          }
+        ]
+      }
+    }
+  },
+  "action": {
+    "id": "grid_choose_0",
+    "kind": "screen_grid",
+    "command": "CHOOSE 0",
+    "card_uuid": "0fba2b18-644d-46d5-b5d3-2e636046be87",
+    "card": {
+      "id": "Cleave",
+      "name": "顺劈斩",
+      "uuid": "0fba2b18-644d-46d5-b5d3-2e636046be87",
+      "type": "ATTACK",
+      "upgrades": 0
+    },
+    "selection_state": {
+      "selected_cards": [],
+      "for_transform": false,
+      "confirm_up": false,
+      "any_number": false,
+      "for_upgrade": false,
+      "num_cards": 1,
+      "for_purge": false,
+      "cards": [
+        {
+          "id": "Cleave",
+          "name": "顺劈斩",
+          "uuid": "0fba2b18-644d-46d5-b5d3-2e636046be87",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Dropkick",
+          "name": "飞身踢",
+          "uuid": "6c3e37b3-9799-4591-b933-eff42b6dcf96",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Reckless Charge",
+          "name": "无谋冲锋",
+          "uuid": "12a0d5b8-3c30-44b3-888c-562b64b84361",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Anger",
+          "name": "愤怒",
+          "uuid": "80329921-aed3-4900-b719-20ee84b18a94",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Bash",
+          "name": "痛击+",
+          "uuid": "ead23b35-b7a6-4c90-8174-51ff7fecfbb7",
+          "type": "ATTACK",
+          "upgrades": 1
+        },
+        {
+          "id": "Strike_R",
+          "name": "打击",
+          "uuid": "0ef38f1e-412d-4237-ad05-6fda477a9d7b",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Strike_R",
+          "name": "打击",
+          "uuid": "4735cdc0-81e7-419f-96bc-a151a9463bf9",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Strike_R",
+          "name": "打击",
+          "uuid": "3c35b12e-df2e-49e7-b90c-db637ab3fe5e",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Strike_R",
+          "name": "打击",
+          "uuid": "37a38649-9b83-44fb-9306-cd3fccdba2d1",
+          "type": "ATTACK",
+          "upgrades": 0
+        },
+        {
+          "id": "Strike_R",
+          "name": "打击",
+          "uuid": "2a6be8ef-9e11-4064-ac8e-af31f9084488",
+          "type": "ATTACK",
+          "upgrades": 0
+        }
+      ]
+    }
+  }
+}

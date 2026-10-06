@@ -60,7 +60,11 @@ def run_metrics(rows):
         key = json.dumps([summary, r.get('candidates', [])], sort_keys=True, ensure_ascii=False)
         duplicates += key in seen
         seen.add(key)
-    return {'api_requests': len(requests), 'valid_decisions': len(decisions),
+    extra_calls={r['step_id']:max(0,r.get('decision',{}).get('model_requests',1)-1)
+                 for r in rows if r.get('status')=='decision' and r['step_id'] in requests}
+    return {'api_requests': len(requests)+sum(extra_calls.values()), 'logical_requests':len(requests),
+            'api_count_complete':not failed and not (requests.keys()-decisions),
+            'valid_decisions': len(decisions),
             'confirmed_actions': len({r['step_id'] for r in rows if r.get('status') == 'action_confirmed'}),
             'duplicate_requests': duplicates, 'failed_requests': len(failed),
             'pending_requests': len(requests.keys() - decisions - failed)}
@@ -82,7 +86,7 @@ def battle_metrics(rows, expected=10):
                 win_rate_scheduled=wins / expected if expected else None,
                 mean_remaining_hp=hp / len(results) if results else None,
                 incomplete=max(0, expected-len(results)), technical_stops=[r.get('reason') for r in stops],
-                api_requests=sum(r.get('status') == 'request_started' for r in rows),
+                api_requests=run_metrics(rows)['api_requests'],
                 mean_confidence=sum(r['decision']['confidence'] for r in decisions if r['decision'].get('confidence') is not None) / len(decisions) if decisions and all(r['decision'].get('confidence') is not None for r in decisions) else None,
                 battles=[dict(run_id=r.get('run_id'), battle_id=r.get('battle_id'), **r['result']) for r in battles.values()])
 

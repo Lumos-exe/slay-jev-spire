@@ -1,0 +1,250 @@
+[
+  {
+    "name": "chosen_three_attacks_without_optional_resources",
+    "run_id": "f6440f3d-e8d1-4fc9-8938-eb5b27211160",
+    "step": 221,
+    "request_id": "edd64837-84eb-46ca-822d-89538b4e4d65",
+    "scope": "Mechanical projection; full generated pool/request in logs/reference09-chosen-evidence.json.gz. Witness is any order of the three attacks with no potion, not an optimality proof.",
+    "witness": {
+      "unordered_cards": [
+        "Perfected Strike",
+        "Strike_R",
+        "Strike_R"
+      ],
+      "target": 0,
+      "no_potions": true
+    },
+    "summary": {
+      "turn": 1,
+      "identity": {
+        "room_id": "4abb9f66-0f9b-4c3e-ad38-46a2953fb9de",
+        "run_id": "f6440f3d-e8d1-4fc9-8938-eb5b27211160",
+        "encounter_id": "6300d0ff-30c2-4623-9bc7-ac6daa39dec3",
+        "version": 1
+      },
+      "player": {
+        "orbs": [],
+        "current_hp": 94,
+        "block": 0,
+        "max_hp": 94,
+        "powers": [
+          {
+            "amount": 2,
+            "native_description": "攻击伤害提升 #b2 。",
+            "native_fields": {
+              "class_fields": {
+                "DESCRIPTIONS": [
+                  "攻击伤害提升 #b",
+                  "攻击伤害降低 #b",
+                  " 。"
+                ],
+                "NAME": "力量",
+                "POWER_ID": "Strength"
+              },
+              "instance_fields": {},
+              "unexported_object_fields": [
+                "powerStrings"
+              ]
+            },
+            "native_mechanics": {
+              "overridden_callbacks": [
+                "atDamageGive(float,DamageType,)",
+                "playApplyPowerSfx()",
+                "reducePower(int,)",
+                "stackPower(int,)",
+                "updateDescription()"
+              ],
+              "scope": "Raw subclass fields captured per native decision revision; class values and visual/cache fields do not override normalized live card values. Callbacks/fields are not full effect semantics. Complex unexported fields are listed explicitly.",
+              "java_class": "com.megacrit.cardcrawl.powers.StrengthPower"
+            },
+            "name": "力量",
+            "id": "Strength",
+            "power_type": "BUFF",
+            "is_turn_based": false,
+            "description": "攻击伤害提升 #b2 。",
+            "dynamic_values_unknown": false
+          }
+        ],
+        "energy": 4
+      },
+      "hand": [
+        {
+          "uuid": "6f611766-6633-4961-a0ce-d8536731468d",
+          "id": "Berserk",
+          "name": "狂暴+",
+          "cost": 0,
+          "has_target": false,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 0,
+            "free_to_play": false
+          }
+        },
+        {
+          "uuid": "fea245f4-bd38-4427-adf3-f369e889689f",
+          "id": "Strike_R",
+          "name": "打击",
+          "cost": 1,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1,
+            "free_to_play": false
+          }
+        },
+        {
+          "uuid": "a305963f-d252-4587-964f-cd821fb6f061",
+          "id": "Perfected Strike",
+          "name": "完美打击+",
+          "cost": 2,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 2,
+            "free_to_play": false
+          }
+        },
+        {
+          "uuid": "71b603f1-d791-47b0-b9ec-72361d97fef3",
+          "id": "Strike_R",
+          "name": "打击",
+          "cost": 1,
+          "has_target": true,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 1,
+            "free_to_play": false
+          }
+        },
+        {
+          "uuid": "e6ad1f0a-d870-4848-aed4-dc4c12966a0e",
+          "id": "Dark Embrace",
+          "name": "黑暗之拥",
+          "cost": 2,
+          "has_target": false,
+          "free_to_play_once": false,
+          "native_values": {
+            "cost_for_turn": 2,
+            "free_to_play": false
+          }
+        }
+      ],
+      "enemies": [
+        {
+          "id": "Chosen",
+          "entity_id": "3905822f-dffa-47dc-9bc8-f8aa34f8e1c7",
+          "current_hp": 98,
+          "move_id": 5,
+          "intent": "ATTACK",
+          "is_gone": false,
+          "half_dead": false
+        }
+      ],
+      "potions": [
+        {
+          "id": "SmokeBomb"
+        },
+        {
+          "id": "AttackPotion"
+        },
+        {
+          "id": "Potion Slot"
+        }
+      ],
+      "relics": [
+        {
+          "id": "Burning Blood"
+        },
+        {
+          "id": "Bird Faced Urn"
+        },
+        {
+          "id": "Mango"
+        },
+        {
+          "id": "Question Card"
+        },
+        {
+          "id": "Brimstone"
+        },
+        {
+          "id": "Cursed Key"
+        }
+      ]
+    },
+    "actions": [
+      {
+        "id": "play_1",
+        "kind": "play",
+        "card_uuid": "6f611766-6633-4961-a0ce-d8536731468d",
+        "target_index": null
+      },
+      {
+        "id": "play_2_0",
+        "kind": "play",
+        "card_uuid": "fea245f4-bd38-4427-adf3-f369e889689f",
+        "target_index": 0
+      },
+      {
+        "id": "play_3_0",
+        "kind": "play",
+        "card_uuid": "a305963f-d252-4587-964f-cd821fb6f061",
+        "target_index": 0
+      },
+      {
+        "id": "play_4_0",
+        "kind": "play",
+        "card_uuid": "71b603f1-d791-47b0-b9ec-72361d97fef3",
+        "target_index": 0
+      },
+      {
+        "id": "play_5",
+        "kind": "play",
+        "card_uuid": "e6ad1f0a-d870-4848-aed4-dc4c12966a0e",
+        "target_index": null
+      },
+      {
+        "id": "end",
+        "kind": "end",
+        "card_uuid": null,
+        "target_index": null
+      },
+      {
+        "id": "potion_use_0_0",
+        "kind": "potion",
+        "card_uuid": null,
+        "target_index": 0,
+        "potion_index": 0,
+        "potion_id": "SmokeBomb",
+        "subaction": "use"
+      },
+      {
+        "id": "potion_discard_0",
+        "kind": "potion",
+        "card_uuid": null,
+        "target_index": null,
+        "potion_index": 0,
+        "potion_id": "SmokeBomb",
+        "subaction": "discard"
+      },
+      {
+        "id": "potion_use_1",
+        "kind": "potion",
+        "card_uuid": null,
+        "target_index": null,
+        "potion_index": 1,
+        "potion_id": "AttackPotion",
+        "subaction": "use"
+      },
+      {
+        "id": "potion_discard_1",
+        "kind": "potion",
+        "card_uuid": null,
+        "target_index": null,
+        "potion_index": 1,
+        "potion_id": "AttackPotion",
+        "subaction": "discard"
+      }
+    ]
+  }
+]

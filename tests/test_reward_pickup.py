@@ -7,11 +7,11 @@ from slay_jev_spire.selectors import choose_mock
 from slay_jev_spire.session import gameplay_state
 
 
-def test_free_rewards_collected_before_leaving_without_model_requests(tmp_path):
+def test_reward_choices_are_model_decisions_and_card_inspection_is_a_workflow_step(tmp_path):
     calls = []
     def selector(summary, candidates):
         calls.append(candidates)
-        return choose_mock(summary, sorted(candidates, key=lambda a: a['command'] != 'PROCEED'))
+        return choose_mock(summary, sorted(candidates, key=lambda a: a['command'] != 'CHOOSE 0'))
     raw = reward()
     raw['game_state']['potions'] = [{'id': 'Potion Slot'}] * 3
     s = RunSession(tmp_path, mode='mock', selector=selector)
@@ -29,7 +29,7 @@ def test_free_rewards_collected_before_leaving_without_model_requests(tmp_path):
             g['potions'][0] = item['potion']
     assert s.receive(raw) == ['STATE']
     assert s.receive(raw) == ['CHOOSE 0']  # Inspect the remaining card reward first.
-    assert s.calls == 0 and not calls
+    assert s.calls == 2 and len(calls)==2
 
 
 @pytest.mark.parametrize('monster_id', ['AcidSlime_S', 'FungiBeast'])
@@ -67,13 +67,13 @@ def test_full_slots_and_sozu_do_not_force_unclaimable_potion(tmp_path):
         assert s.calls == 1
 
 
-def test_free_relic_is_collected_even_if_selector_would_leave(tmp_path):
+def test_free_relic_is_not_forced_over_the_models_choice(tmp_path):
     raw = reward();g=raw['game_state']
     g['screen_state']['rewards']=[{'reward_type':'RELIC','relic':{'id':'Happy Flower','name':'Happy Flower','counter':-1}}]
     g['choice_list']=['relic']
-    s=RunSession(tmp_path,mode='mock',selector=lambda *args:pytest.fail('Free relic is a local collection action'))
-    assert s.receive(raw)==['STATE'] and s.receive(raw)==['CHOOSE 0']
-    assert s.calls==0
+    s=RunSession(tmp_path,mode='mock',selector=lambda summary,actions:choose_mock(summary,[next(a for a in actions if a['command']=='PROCEED')]))
+    assert s.receive(raw)==['STATE'] and s.receive(raw)==['PROCEED']
+    assert s.calls==1
 
 
 def test_relic_pickup_can_open_a_selection_screen():

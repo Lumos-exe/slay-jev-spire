@@ -2,10 +2,12 @@ param(
     [string]$GameDirectory = 'C:\Program Files (x86)\Steam\steamapps\common\SlayTheSpire',
     [string]$WorkshopDirectory = 'C:\Program Files (x86)\Steam\steamapps\workshop\content\646570',
     [ValidateRange(1,2000)][int]$MaxDecisions = 500,
+    [ValidateSet('jev','external')][string]$DecisionMode = 'jev',
     [switch]$StartNew,
     [switch]$CombatOnly,
     [string]$Seed,
     [ValidateRange(1,128)][int]$BeamWidth = 32,
+    [ValidateSet('none','drop_settled','duplicate_action')][string]$FaultInjection = 'none',
     [switch]$CheckOnly
 )
 
@@ -20,8 +22,9 @@ param(
     [switch]$StartNew,
     [string]$Seed,
     [ValidateRange(1,128)][int]$BeamWidth = 32,
+    [ValidateSet('none','drop_settled','duplicate_action')][string]$FaultInjection = 'none',
     [ValidateRange(0,2000)][int]$MaxDecisions = 0,
-    [ValidateSet('mock', 'jev')][string]$Mode = 'mock'
+    [ValidateSet('mock', 'jev', 'external')][string]$Mode = 'mock'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -45,7 +48,8 @@ $backupDirectory = Join-Path $projectRoot 'logs\config-backups'
 New-Item -ItemType Directory -Force -Path $backupDirectory | Out-Null
 $backupPath = Join-Path $backupDirectory ('communicationmod-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff') + '.properties')
 Copy-Item -LiteralPath $ConfigPath -Destination $backupPath
-$command = "$pythonPath -X utf8 -u $entryPath --input-encoding gbk --beam-width $BeamWidth"
+$command = "$pythonPath -X utf8 -u $entryPath --input-encoding gbk"
+if ($FaultInjection -ne 'none') { $command += " --fault-injection $FaultInjection" }
 if ($ExecuteOnce) {
     $command += " --execute-once $Mode"
 }
@@ -84,7 +88,8 @@ foreach ($requiredPath in $requiredPaths) {
         throw "Missing required file: $requiredPath"
     }
 }
-$javaArguments = @('-jar', ('"' + $loaderPath + '"'), '--mods', 'basemod,CommunicationMod,jevstate', '--skip-intro')
+$catalogPath = Join-Path $projectRoot 'data\native-catalog.json'
+$javaArguments = @(('-Djev.catalog.path="' + $catalogPath + '"'), '-jar', ('"' + $loaderPath + '"'), '--mods', 'basemod,CommunicationMod,jevstate', '--skip-intro')
 if ($CheckOnly) {
     Write-Output "Ready: $javaPath $($javaArguments -join ' ')"
     Write-Output "Jev decision budget: $MaxDecisions. No files changed or processes launched."
@@ -105,7 +110,7 @@ if ($runningGames.Count -gt 0) {
 if (!(Get-Process -Name steam -ErrorAction SilentlyContinue)) {
     throw 'Start Steam and sign in before launching the game.'
 }
-if (!(Test-Path -LiteralPath (Join-Path $projectRoot 'config\jev-key.dpapi')) -and !$env:TYPESAFE_API_KEY) {
+if ($DecisionMode -eq 'jev' -and !(Test-Path -LiteralPath (Join-Path $projectRoot 'config\jev-key.dpapi')) -and !$env:TYPESAFE_API_KEY) {
     throw 'Jev key is missing. Run main.py configure first.'
 }
 $localMods = Join-Path $GameDirectory 'mods'
@@ -120,7 +125,7 @@ if (!(Test-Path -LiteralPath $installedStateMod) -or
     }
     Copy-Item -LiteralPath $stateModPath -Destination $installedStateMod
 }
-Set-CommunicationCommand -Run:(!$CombatOnly) -Combat:$CombatOnly -Mode jev -MaxDecisions $MaxDecisions -StartNew:$StartNew -Seed $Seed -BeamWidth $BeamWidth
+Set-CommunicationCommand -Run:(!$CombatOnly) -Combat:$CombatOnly -Mode $DecisionMode -MaxDecisions $MaxDecisions -StartNew:$StartNew -Seed $Seed -BeamWidth $BeamWidth -FaultInjection $FaultInjection
 $pausePath = Join-Path $projectRoot 'logs\live\pause.flag'
 if (Test-Path -LiteralPath $pausePath) { Remove-Item -LiteralPath $pausePath }
 $resumePath = Join-Path $projectRoot 'logs\live\resume.flag'
